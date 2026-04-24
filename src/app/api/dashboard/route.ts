@@ -14,7 +14,10 @@ export async function GET(req: NextRequest) {
     prisma.config.findMany(),
   ]);
 
-  const configMap = Object.fromEntries(config.map((c) => [c.key, c.value]));
+  const configMap = Object.fromEntries(config.map((c: { key: string; value: string }) => [c.key, c.value])) as Record<
+    string,
+    string
+  >;
   const northstar = parseInt(configMap.target_northstar_nasional || "100000");
   const targetPerSales = parseInt(configMap.target_per_sales_bulan || "2000");
 
