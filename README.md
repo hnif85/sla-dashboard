@@ -2,6 +2,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment
+
+Create a `.env` file (see `.env.example`) and set `DATABASE_URL` to a reachable Postgres instance.
+
 First, run the development server:
 
 ```bash

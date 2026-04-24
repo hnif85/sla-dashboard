@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 const STAGES = [
-  "1. Lead/Prospek", "2. Qualified", "3. Meeting/Demo",
-  "4. Proposal", "5. Negosiasi", "6. Closing",
-  "7. Closed Won", "8. Closed Lost",
+  "1. Lead/Prospek", "2. Outreach (Email/WA)", "3. Follow Up / Kit",
+  "4. Meeting Discovery", "5. Demo/Presentasi", "6. Proposal Formal",
+  "7. Negosiasi", "8. Pilot (opsional)", "9. Deal/Closed Won", "0. Closed Lost",
 ];
 
 const CHANNELS = ["Impact+", "Academy", "FinanceWhiz", "Marketplace", "Direct", "Referral", "Event", "Lainnya"];

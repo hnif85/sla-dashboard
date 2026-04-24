@@ -27,16 +27,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const salesId = session.role === "sales" ? session.userId : (body.salesId || session.userId);
 
+  const toStr = (v: unknown) => Array.isArray(v) ? v.join("\n") : (v as string) || null;
+
   const mom = await prisma.mOM.create({
     data: {
       title: body.title,
       salesId,
       prospectId: body.prospectId || null,
-      participants: body.participants,
-      agenda: body.agenda,
-      discussion: body.discussion,
-      decisions: body.decisions,
-      actionItems: body.actionItems,
+      participants: toStr(body.participants),
+      agenda: toStr(body.agenda),
+      discussion: toStr(body.discussion),
+      decisions: toStr(body.decisions),
+      actionItems: toStr(body.actionItems),
       nextMeeting: body.nextMeeting ? new Date(body.nextMeeting) : null,
       tanggal: body.tanggal ? new Date(body.tanggal) : new Date(),
     },

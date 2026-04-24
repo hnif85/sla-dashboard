@@ -24,6 +24,25 @@ interface DashboardData {
   salesPerformance: Array<{ name: string; closed: number; pipeline: number; total: number }>;
 }
 
+function isDashboardData(value: unknown): value is DashboardData {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  if (!v.summary || typeof v.summary !== "object") return false;
+  const s = v.summary as Record<string, unknown>;
+
+  return (
+    typeof s.totalUmkmClosed === "number" &&
+    typeof s.northstarPct === "number" &&
+    typeof s.totalPipelineOpen === "number" &&
+    typeof s.weightedPipeline === "number" &&
+    typeof s.targetPerSales === "number" &&
+    typeof v.stageCount === "object" &&
+    typeof v.slaStatus === "object" &&
+    Array.isArray(v.recentActivities) &&
+    Array.isArray(v.salesPerformance)
+  );
+}
+
 function StatCard({ title, value, sub, icon: Icon, color }: {
   title: string; value: string; sub?: string; icon: React.ElementType; color: string;
 }) {
@@ -54,12 +73,55 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then(setData)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/dashboard");
+        const body = (await res.json().catch(() => null)) as unknown;
+
+        if (!res.ok) {
+          const message =
+            (body as { error?: unknown } | null)?.error && typeof (body as { error?: unknown }).error === "string"
+              ? ((body as { error: string }).error as string)
+              : `Request failed (${res.status})`;
+
+          if (!cancelled) {
+            setData(null);
+            setError(message);
+          }
+          return;
+        }
+
+        if (!isDashboardData(body)) {
+          if (!cancelled) {
+            setData(null);
+            setError("Unexpected response from server.");
+          }
+          return;
+        }
+
+        if (!cancelled) setData(body);
+      } catch {
+        if (!cancelled) {
+          setData(null);
+          setError("Network error.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) return (
@@ -67,6 +129,24 @@ export default function DashboardPage() {
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
     </div>
   );
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5">
+              <AlertTriangle size={18} className="text-yellow-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-gray-900">Dashboard unavailable</div>
+              <div className="text-sm text-gray-500 mt-1">{error}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
 

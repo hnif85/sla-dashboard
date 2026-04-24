@@ -17,13 +17,26 @@ export async function GET(req: NextRequest) {
 
   const where = session.role === "sales" ? { salesId: session.userId } : {};
 
-  const prospects = await prisma.prospect.findMany({
-    where,
-    include: { sales: { select: { id: true, name: true } } },
-    orderBy: { updatedAt: "desc" },
+  const [prospects, funnelStages] = await Promise.all([
+    prisma.prospect.findMany({
+      where,
+      include: { sales: { select: { id: true, name: true } } },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.funnelStage.findMany(),
+  ]);
+
+  const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
+  const now = new Date();
+
+  const result = prospects.map((p) => {
+    const hariDiStage = differenceInDays(now, new Date(p.tglUpdateStage));
+    const slaMax = stageMap[p.stage]?.slaMax ?? 7;
+    const statusSLA = computeSLAStatus(p.stage, new Date(p.tglUpdateStage), slaMax);
+    return { ...p, hariDiStage, statusSLA };
   });
 
-  return NextResponse.json(prospects);
+  return NextResponse.json(result);
 }
 
 export async function POST(req: NextRequest) {

@@ -22,6 +22,7 @@ interface Activity {
   tipeAktivitas: string;
   topikHasil: string;
   catatan: string;
+  linkMOM?: string;
   sales: { name: string };
 }
 
@@ -309,6 +310,27 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
                     </div>
                     <div className="text-sm text-gray-700">{a.topikHasil || "-"}</div>
                     {a.catatan && <div className="text-xs text-gray-400 mt-0.5">{a.catatan}</div>}
+                    {a.linkMOM && (
+                      <div className="text-xs mt-1">
+                        {a.linkMOM.startsWith("/") ? (
+                          <Link
+                            href={a.linkMOM}
+                            className="text-yellow-700 hover:text-yellow-800 underline underline-offset-2"
+                          >
+                            Lihat MOM
+                          </Link>
+                        ) : (
+                          <a
+                            href={a.linkMOM}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-yellow-700 hover:text-yellow-800 underline underline-offset-2"
+                          >
+                            Lihat MOM
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs text-gray-400 whitespace-nowrap">
                     {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}

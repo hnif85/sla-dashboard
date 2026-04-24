@@ -41,7 +41,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json(prospect);
+  const funnelStage = await prisma.funnelStage.findFirst({ where: { name: prospect.stage } });
+  const slaMax = funnelStage?.slaMax ?? 7;
+  const hariDiStage = differenceInDays(new Date(), new Date(prospect.tglUpdateStage));
+  const statusSLA = computeSLAStatus(prospect.stage, new Date(prospect.tglUpdateStage), slaMax);
+
+  return NextResponse.json({ ...prospect, hariDiStage, statusSLA });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
