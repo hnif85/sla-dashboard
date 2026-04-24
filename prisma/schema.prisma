@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("sales")
+  region       String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  prospects   Prospect[]
+  activities  Activity[]
+  moms        MOM[]
+  historyLogs PipelineHistory[]
+}
+
+model FunnelStage {
+  id             String @id @default(cuid())
+  order          Int
+  name           String @unique
+  description    String?
+  slaMin         Int    @default(1)
+  slaTarget      Int    @default(3)
+  slaMax         Int    @default(7)
+  convRateTarget Float  @default(0.5)
+}
+
+model Prospect {
+  id             String   @id @default(cuid())
+  tglMasuk       DateTime @default(now())
+  salesId        String
+  namaProspek    String
+  channel        String?
+  produkFokus    String?
+  kontakPIC      String?
+  kontakInfo     String?
+  stage          String   @default("1. Lead/Prospek")
+  tglUpdateStage DateTime @default(now())
+  nextAction     String?
+  estUmkmReach   Int?
+  estNilaiDeal   Float?
+  probability    Float?
+  weightedUmkm   Float?
+  weightedNilai  Float?
+  hariDiStage    Int      @default(0)
+  statusSLA      String   @default("On Track")
+  reasonLost     String?
+  linkDokumen    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sales      User              @relation(fields: [salesId], references: [id])
+  history    PipelineHistory[]
+  activities Activity[]
+  moms       MOM[]
+}
+
+model PipelineHistory {
+  id          String   @id @default(cuid())
+  prospectId  String
+  changedById String
+  changedAt   DateTime @default(now())
+  fieldName   String
+  oldValue    String?
+  newValue    String?
+  notes       String?
+
+  prospect  Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  changedBy User     @relation(fields: [changedById], references: [id])
+}
+
+model Activity {
+  id            String   @id @default(cuid())
+  tanggal       DateTime @default(now())
+  salesId       String
+  prospectId    String?
+  tipeAktivitas String
+  namaProspek   String?
+  pic           String?
+  topikHasil    String?
+  nextStage     String?
+  catatan       String?
+  linkMOM       String?
+  createdAt     DateTime @default(now())
+
+  sales    User      @relation(fields: [salesId], references: [id])
+  prospect Prospect? @relation(fields: [prospectId], references: [id])
+}
+
+model MOM {
+  id          String    @id @default(cuid())
+  title       String
+  tanggal     DateTime  @default(now())
+  salesId     String
+  prospectId  String?
+  participants String?
+  agenda      String?
+  discussion  String?
+  decisions   String?
+  actionItems String?
+  nextMeeting DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sales    User      @relation(fields: [salesId], references: [id])
+  prospect Prospect? @relation(fields: [prospectId], references: [id])
+}
+
+model Config {
+  id          String @id @default(cuid())
+  key         String @unique
+  value       String
+  label       String
+  description String?
+  category    String @default("general")
+}
