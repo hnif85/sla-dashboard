@@ -74,11 +74,17 @@ export async function GET(req: NextRequest) {
     );
 
     const salesPerf = prospectsWithSLA.reduce(
-      (acc: Record<string, { name: string; closed: number; pipeline: number; total: number }>, p) => {
+      (acc: Record<string, { name: string; closed: number; pipeline: number; total: number; onTrack: number; atRisk: number; overdue: number }>, p) => {
         const name = p.sales.name;
-        if (!acc[name]) acc[name] = { name, closed: 0, pipeline: 0, total: 0 };
-        if (isClosedWon(p.stage)) acc[name].closed += p.estUmkmReach || 0;
-        else if (!isClosed(p.stage)) acc[name].pipeline += p.weightedUmkm || 0;
+        if (!acc[name]) acc[name] = { name, closed: 0, pipeline: 0, total: 0, onTrack: 0, atRisk: 0, overdue: 0 };
+        if (isClosedWon(p.stage)) {
+          acc[name].closed += p.estUmkmReach || 0;
+        } else if (!isClosed(p.stage)) {
+          acc[name].pipeline += Number(p.weightedUmkm) || 0;
+          if (p.statusSLA === "On Track") acc[name].onTrack += 1;
+          else if (p.statusSLA === "At Risk") acc[name].atRisk += 1;
+          else if (p.statusSLA === "Overdue") acc[name].overdue += 1;
+        }
         acc[name].total += 1;
         return acc;
       },
