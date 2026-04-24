@@ -106,7 +106,7 @@ export default function ReportsPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 lg:col-span-2">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={18} className="text-blue-500" />
-            <h2 className="font-semibold text-gray-900">Distribusi Stage</h2>
+            <h2 className="font-semibold text-gray-900">Tahap Prospek</h2>
           </div>
           <div className="space-y-2">
             {Object.entries(data.stageCount)
