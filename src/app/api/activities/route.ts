@@ -8,9 +8,17 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const prospectId = url.searchParams.get("prospectId") || undefined;
+  const dateFrom = url.searchParams.get("dateFrom") || undefined;
+  const dateTo = url.searchParams.get("dateTo") || undefined;
 
   const where: Record<string, unknown> = session.role === "sales" ? { salesId: session.userId } : {};
   if (prospectId) where.prospectId = prospectId;
+  if (dateFrom || dateTo) {
+    where.tanggal = {
+      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+      ...(dateTo ? { lte: new Date(dateTo + "T23:59:59.999Z") } : {}),
+    };
+  }
 
   const activities = await prisma.activity.findMany({
     where,
