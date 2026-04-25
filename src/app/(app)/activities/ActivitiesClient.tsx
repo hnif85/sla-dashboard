@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, X, Search } from "lucide-react";
+import { Plus, X, Search, ExternalLink, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Activity {
   id: string;
@@ -14,7 +16,7 @@ interface Activity {
   catatan: string;
   linkMOM: string;
   sales: { name: string };
-  prospect?: { namaProspek: string };
+  prospect?: { id: string; namaProspek: string };
 }
 
 interface Prospect {
@@ -70,6 +72,7 @@ const EMPTY_FORM = {
 };
 
 export default function ActivitiesClient() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const prospectIdFromQuery = searchParams?.get("prospectId") || "";
 
@@ -81,6 +84,8 @@ export default function ActivitiesClient() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("");
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchActivities = (prospectId?: string) => {
     const url = prospectId ? `/api/activities?prospectId=${encodeURIComponent(prospectId)}` : "/api/activities";
@@ -142,6 +147,16 @@ export default function ActivitiesClient() {
     setShowModal(false);
     setDismissedProspectId(prospectIdFromQuery);
     setForm(prospectIdFromQuery ? { ...EMPTY_FORM, prospectId: prospectIdFromQuery } : EMPTY_FORM);
+    fetchActivities(prospectIdFromQuery || undefined);
+  };
+
+  const handleDeleteActivity = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Yakin hapus aktivitas ini?")) return;
+    setDeletingId(id);
+    await fetch(`/api/activities/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    if (selectedActivity?.id === id) setSelectedActivity(null);
     fetchActivities(prospectIdFromQuery || undefined);
   };
 
@@ -231,11 +246,16 @@ export default function ActivitiesClient() {
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Topik / Hasil</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
+                  {user?.role === "admin" && <th className="px-4 py-3" />}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((a) => (
-                  <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr
+                    key={a.id}
+                    onClick={() => setSelectedActivity(a)}
+                    className="border-b border-gray-50 hover:bg-yellow-50 cursor-pointer transition-colors group"
+                  >
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                       {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
@@ -246,15 +266,24 @@ export default function ActivitiesClient() {
                     <td className="px-4 py-3 text-gray-700 font-medium">{a.prospect?.namaProspek || a.namaProspek || "-"}</td>
                     <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{a.topikHasil || "-"}</td>
                     <td className="px-4 py-3 text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs">{a.nextStage || "-"}</span>
-                        {a.linkMOM && <a href={a.linkMOM} className="text-xs text-yellow-700 hover:underline">MOM</a>}
-                      </div>
+                      <span className="text-xs">{a.nextStage || "-"}</span>
                     </td>
+                    {user?.role === "admin" && (
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          onClick={(e) => handleDeleteActivity(e, a.id)}
+                          disabled={deletingId === a.id}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                          title="Hapus Aktivitas"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="text-center py-12 text-gray-400">
+                  <tr><td colSpan={user?.role === "admin" ? 7 : 6} className="text-center py-12 text-gray-400">
                     {search || filterTipe ? "Tidak ada aktivitas yang cocok" : "Belum ada aktivitas"}
                   </td></tr>
                 )}
@@ -270,27 +299,170 @@ export default function ActivitiesClient() {
               </div>
             )}
             {filtered.map((a) => (
-              <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div
+                key={a.id}
+                onClick={() => setSelectedActivity(a)}
+                className="relative group bg-white rounded-xl border border-gray-100 shadow-sm p-4 cursor-pointer hover:border-yellow-300 hover:bg-yellow-50 transition-colors"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{a.tipeAktivitas}</span>
                   <span className="text-xs text-gray-400">
                     {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <div className="font-semibold text-gray-900 text-sm mb-0.5">{a.prospect?.namaProspek || a.namaProspek || "-"}</div>
+                <div className="font-semibold text-gray-900 text-sm mb-0.5 pr-7">{a.prospect?.namaProspek || a.namaProspek || "-"}</div>
                 <div className="text-xs text-gray-400 mb-2">{a.sales.name}</div>
                 {a.topikHasil && <p className="text-sm text-gray-600 leading-relaxed mb-2 line-clamp-2">{a.topikHasil}</p>}
-                <div className="flex items-center justify-between">
-                  {a.nextStage
-                    ? <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{a.nextStage}</span>
-                    : <span />
-                  }
-                  {a.linkMOM && <a href={a.linkMOM} className="text-xs text-yellow-700 font-medium underline underline-offset-2">Lihat MOM</a>}
-                </div>
+                {a.nextStage && (
+                  <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{a.nextStage}</span>
+                )}
+                {user?.role === "admin" && (
+                  <button
+                    onClick={(e) => handleDeleteActivity(e, a.id)}
+                    disabled={deletingId === a.id}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                    title="Hapus Aktivitas"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </>
+      )}
+
+      {/* Activity Detail Modal */}
+      {selectedActivity && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" onClick={() => setSelectedActivity(null)}>
+          <div
+            className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <span className="inline-block text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium mb-1.5">
+                  {selectedActivity.tipeAktivitas}
+                </span>
+                <div className="text-sm text-gray-500">
+                  {new Date(selectedActivity.tanggal).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                </div>
+              </div>
+              <button onClick={() => setSelectedActivity(null)} className="text-gray-400 hover:text-gray-600 mt-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+              {/* Prospek */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-xs text-gray-400 mb-0.5">Prospek</div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    {selectedActivity.prospect?.namaProspek || selectedActivity.namaProspek || "-"}
+                  </div>
+                </div>
+                {selectedActivity.prospect?.id && (
+                  <Link
+                    href={`/pipeline/${selectedActivity.prospect.id}`}
+                    className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-700 font-medium shrink-0 mt-4"
+                    onClick={() => setSelectedActivity(null)}
+                  >
+                    <ExternalLink size={12} />
+                    Lihat Pipeline
+                  </Link>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-gray-400 mb-0.5">Sales</div>
+                  <div className="text-sm text-gray-900">{selectedActivity.sales.name}</div>
+                </div>
+                {selectedActivity.pic && (
+                  <div>
+                    <div className="text-xs text-gray-400 mb-0.5">PIC yang Ditemui</div>
+                    <div className="text-sm text-gray-900">{selectedActivity.pic}</div>
+                  </div>
+                )}
+              </div>
+
+              {selectedActivity.topikHasil && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Topik / Hasil</div>
+                  <div className="text-sm text-gray-800 bg-gray-50 rounded-xl px-4 py-3 leading-relaxed whitespace-pre-wrap">
+                    {selectedActivity.topikHasil}
+                  </div>
+                </div>
+              )}
+
+              {selectedActivity.catatan && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-1">Catatan</div>
+                  <div className="text-sm text-gray-700 bg-gray-50 rounded-xl px-4 py-3 leading-relaxed whitespace-pre-wrap">
+                    {selectedActivity.catatan}
+                  </div>
+                </div>
+              )}
+
+              {selectedActivity.nextStage && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-0.5">Next Stage</div>
+                  <span className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium">
+                    {selectedActivity.nextStage}
+                  </span>
+                </div>
+              )}
+
+              {selectedActivity.linkMOM && (
+                <div>
+                  <div className="text-xs text-gray-400 mb-0.5">MOM</div>
+                  {selectedActivity.linkMOM.startsWith("/") ? (
+                    <Link
+                      href={selectedActivity.linkMOM}
+                      className="flex items-center gap-1.5 text-sm text-yellow-700 hover:text-yellow-800 font-medium"
+                      onClick={() => setSelectedActivity(null)}
+                    >
+                      <ExternalLink size={13} />
+                      Lihat Minutes of Meeting
+                    </Link>
+                  ) : (
+                    <a
+                      href={selectedActivity.linkMOM}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-yellow-700 hover:text-yellow-800 font-medium"
+                    >
+                      <ExternalLink size={13} />
+                      Lihat MOM
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex gap-2">
+              {user?.role === "admin" && (
+                <button
+                  onClick={(e) => handleDeleteActivity(e, selectedActivity.id)}
+                  disabled={deletingId === selectedActivity.id}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl font-medium disabled:opacity-50 transition-colors"
+                >
+                  <Trash2 size={13} />
+                  Hapus
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedActivity(null)}
+                className="flex-1 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {modalOpen && (

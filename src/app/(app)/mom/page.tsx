@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, FileText, Calendar, User } from "lucide-react";
+import { Plus, FileText, Calendar, User, Trash2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MOM {
   id: string;
@@ -15,12 +16,26 @@ interface MOM {
 }
 
 export default function MOMPage() {
+  const { user } = useAuth();
   const [moms, setMoms] = useState<MOM[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchMoms = () => {
     fetch("/api/mom").then((r) => r.json()).then(setMoms).finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchMoms(); }, []);
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Yakin hapus MOM ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    setDeletingId(id);
+    await fetch(`/api/mom/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    fetchMoms();
+  };
 
   return (
     <div className="p-4 md:p-6">
@@ -50,36 +65,44 @@ export default function MOMPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {moms.map((m) => (
-            <Link
-              key={m.id}
-              href={`/mom/${m.id}`}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <FileText size={18} className="text-yellow-500 mt-0.5" />
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <Calendar size={10} />
-                  {new Date(m.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                </span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{m.title}</h3>
-              {m.prospect && (
-                <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mb-2">
-                  {m.prospect.namaProspek}
+            <div key={m.id} className="relative group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <Link href={`/mom/${m.id}`} className="block p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <FileText size={18} className="text-yellow-500 mt-0.5" />
+                  <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <Calendar size={10} />
+                    {new Date(m.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
                 </div>
-              )}
-              <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
-                <User size={10} />
-                <span>{m.sales.name}</span>
-                {m.participants && <><span>·</span><span>{m.participants.split(",").length} peserta</span></>}
-              </div>
-              {m.actionItems && (
-                <div className="mt-3 pt-3 border-t border-gray-50">
-                  <div className="text-xs text-gray-400 mb-1">Action Items</div>
-                  <div className="text-xs text-gray-600 line-clamp-2">{m.actionItems}</div>
+                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 pr-6">{m.title}</h3>
+                {m.prospect && (
+                  <div className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mb-2">
+                    {m.prospect.namaProspek}
+                  </div>
+                )}
+                <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
+                  <User size={10} />
+                  <span>{m.sales.name}</span>
+                  {m.participants && <><span>·</span><span>{m.participants.split(",").length} peserta</span></>}
                 </div>
+                {m.actionItems && (
+                  <div className="mt-3 pt-3 border-t border-gray-50">
+                    <div className="text-xs text-gray-400 mb-1">Action Items</div>
+                    <div className="text-xs text-gray-600 line-clamp-2">{m.actionItems}</div>
+                  </div>
+                )}
+              </Link>
+              {user?.role === "admin" && (
+                <button
+                  onClick={(e) => handleDelete(e, m.id)}
+                  disabled={deletingId === m.id}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                  title="Hapus MOM"
+                >
+                  <Trash2 size={14} />
+                </button>
               )}
-            </Link>
+            </div>
           ))}
         </div>
       )}

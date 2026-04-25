@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const activities = await prisma.activity.findMany({
     where,
-    include: { sales: { select: { name: true } }, prospect: { select: { namaProspek: true } } },
+    include: { sales: { select: { name: true } }, prospect: { select: { id: true, namaProspek: true } } },
     orderBy: { tanggal: "desc" },
   });
 

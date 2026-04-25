@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import {
-  Plus, X, CalendarDays, CheckCircle2, Clock, AlertTriangle,
-  Edit2, Trash2, Activity, ChevronRight,
+  Plus, X, CalendarDays, CheckCircle2, Clock,
+  Edit2, Trash2, Activity, ChevronRight, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -43,10 +44,6 @@ const EMPTY_FORM = {
   judul: "", tipeAktivitas: "Follow Up", tanggalRencana: "", catatan: "", prospectId: "", salesId: "",
 };
 
-const EMPTY_ACTIVITY_FORM = {
-  tipeAktivitas: "", topikHasil: "", catatan: "", tanggal: new Date().toISOString().split("T")[0],
-  nextStage: "", pic: "",
-};
 
 /* ─── Status helpers ────────────────────────────────────────── */
 function getTaskStatus(task: Task) {
@@ -94,6 +91,7 @@ function getFilterBounds(period: string) {
 /* ─── Main Component ─────────────────────────────────────────── */
 export default function PlansPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [salesUsers, setSalesUsers] = useState<SalesUser[]>([]);
@@ -112,8 +110,6 @@ export default function PlansPage() {
 
   // Mark done modal
   const [doneTask, setDoneTask] = useState<Task | null>(null);
-  const [showActivityForm, setShowActivityForm] = useState(false);
-  const [actForm, setActForm] = useState(EMPTY_ACTIVITY_FORM);
   const [savingDone, setSavingDone] = useState(false);
 
   const fetchTasks = useCallback(() => {
@@ -124,7 +120,11 @@ export default function PlansPage() {
     if (filterSales) params.set("salesId", filterSales);
 
     fetch(`/api/tasks?${params}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) return [];
+        const data = await r.json().catch(() => []);
+        return Array.isArray(data) ? data : [];
+      })
       .then(setTasks)
       .finally(() => setLoading(false));
   }, [period, filterSales]);
@@ -132,11 +132,13 @@ export default function PlansPage() {
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
   useEffect(() => {
-    fetch("/api/pipeline").then((r) => r.json()).then(setProspects);
+    fetch("/api/pipeline")
+      .then(async (r) => { const d = r.ok ? await r.json().catch(() => []) : []; return Array.isArray(d) ? d : []; })
+      .then(setProspects);
     if (user?.role === "admin") {
-      fetch("/api/admin/users").then((r) => r.json()).then((users: SalesUser[]) =>
-        setSalesUsers(users.filter((u: { role?: string } & SalesUser) => (u as unknown as { role: string }).role !== "admin" || true))
-      );
+      fetch("/api/admin/users")
+        .then(async (r) => { const d = r.ok ? await r.json().catch(() => []) : []; return Array.isArray(d) ? d : []; })
+        .then(setSalesUsers);
     }
   }, [user]);
 
@@ -189,16 +191,7 @@ export default function PlansPage() {
   };
 
   // Mark done flow
-  const openDone = (t: Task) => {
-    setDoneTask(t);
-    setShowActivityForm(false);
-    setActForm({
-      ...EMPTY_ACTIVITY_FORM,
-      tipeAktivitas: t.tipeAktivitas,
-      catatan: t.judul,
-      tanggal: toISO(new Date()),
-    });
-  };
+  const openDone = (t: Task) => setDoneTask(t);
 
   const markDoneOnly = async () => {
     if (!doneTask) return;
@@ -212,36 +205,12 @@ export default function PlansPage() {
     fetchTasks();
   };
 
-  const markDoneWithActivity = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const goToMOM = () => {
     if (!doneTask) return;
-    setSavingDone(true);
-
-    // 1. Create activity
-    const actRes = await fetch("/api/activities", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prospectId: doneTask.prospect?.id || null,
-        namaProspek: doneTask.prospect?.namaProspek || "",
-        tanggal: actForm.tanggal,
-        tipeAktivitas: actForm.tipeAktivitas,
-        topikHasil: actForm.topikHasil,
-        catatan: actForm.catatan,
-        nextStage: actForm.nextStage,
-        pic: actForm.pic,
-      }),
-    });
-    const actData = await actRes.json();
-
-    // 2. Mark task done + link activity
-    await fetch(`/api/tasks/${doneTask.id}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "done", activityId: actData.id }),
-    });
-
-    setSavingDone(false);
+    const params = new URLSearchParams({ taskId: doneTask.id });
+    if (doneTask.prospect?.id) params.set("prospectId", doneTask.prospect.id);
     setDoneTask(null);
-    fetchTasks();
+    router.push(`/mom/new?${params}`);
   };
 
   const pendingCount = tasks.filter((t) => {
@@ -531,21 +500,24 @@ export default function PlansPage() {
       )}
 
       {/* ── Mark Done Modal ── */}
-      {doneTask && !showActivityForm && (
+      {doneTask && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl p-6">
             <h2 className="font-bold text-gray-900 text-lg mb-1">Tandai Selesai</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              <span className="font-medium text-gray-700">{doneTask.judul}</span> — apakah ingin mencatat hasil kegiatannya ke Activity Log?
+            <p className="text-sm text-gray-500 mb-1">
+              <span className="font-medium text-gray-700">{doneTask.judul}</span>
             </p>
+            {doneTask.prospect && (
+              <p className="text-xs text-gray-400 mb-4">Prospek: {doneTask.prospect.namaProspek}</p>
+            )}
             <div className="space-y-2">
-              <button onClick={() => setShowActivityForm(true)}
+              <button onClick={goToMOM}
                 className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
-                <Activity size={15} /> Catat Aktivitas + Selesai
+                <Sparkles size={15} /> Buat MOM + Aktivitas via AI
               </button>
               <button onClick={markDoneOnly} disabled={savingDone}
                 className="w-full py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-                {savingDone ? "Menyimpan..." : "Selesaikan Saja"}
+                {savingDone ? "Menyimpan..." : "Selesaikan Saja (tanpa MOM)"}
               </button>
               <button onClick={() => setDoneTask(null)}
                 className="w-full py-2 text-sm text-gray-400 hover:text-gray-600">
@@ -556,66 +528,6 @@ export default function PlansPage() {
         </div>
       )}
 
-      {/* ── Activity Form (after mark done) ── */}
-      {doneTask && showActivityForm && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div>
-                <h2 className="font-semibold text-gray-900">Catat Hasil Kegiatan</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{doneTask.judul}</p>
-              </div>
-              <button onClick={() => { setDoneTask(null); setShowActivityForm(false); }} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={markDoneWithActivity} className="flex flex-col flex-1 min-h-0">
-              <div className="p-5 space-y-4 overflow-y-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Aktivitas *</label>
-                    <select required value={actForm.tipeAktivitas}
-                      onChange={(e) => setActForm((f) => ({ ...f, tipeAktivitas: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 bg-white text-gray-900">
-                      {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pelaksanaan *</label>
-                    <input required type="date" value={actForm.tanggal}
-                      onChange={(e) => setActForm((f) => ({ ...f, tanggal: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Topik / Hasil Singkat</label>
-                  <textarea value={actForm.topikHasil}
-                    onChange={(e) => setActForm((f) => ({ ...f, topikHasil: e.target.value }))} rows={2}
-                    placeholder="Apa yang dibahas atau hasil dari kegiatan ini?"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan</label>
-                  <textarea value={actForm.catatan}
-                    onChange={(e) => setActForm((f) => ({ ...f, catatan: e.target.value }))} rows={2}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white" />
-                </div>
-              </div>
-              <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
-                <button type="button" onClick={() => setShowActivityForm(false)}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Kembali
-                </button>
-                <button type="submit" disabled={savingDone}
-                  className="flex-1 py-2.5 bg-yellow-400 hover:bg-yellow-500 disabled:opacity-60 text-gray-900 rounded-xl text-sm font-semibold">
-                  {savingDone ? "Menyimpan..." : "Simpan & Selesai"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

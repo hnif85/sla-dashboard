@@ -48,6 +48,7 @@ function MOMFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultProspectId = searchParams.get("prospectId") || "";
+  const taskId = searchParams.get("taskId") || "";
 
   const [step, setStep] = useState<"input" | "review">("input");
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -150,8 +151,9 @@ function MOMFormInner() {
       }
 
       // 3. Create activity log (if toggled + prospect selected)
+      let createdActivityId: string | null = null;
       if (applyActivity && selectedProspectId) {
-        await fetch("/api/activities", {
+        const actRes = await fetch("/api/activities", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -163,6 +165,22 @@ function MOMFormInner() {
             nextStage: draft.activity.nextStage,
             catatan: draft.activity.catatan,
             linkMOM: `/mom/${momData.id}`,
+          }),
+        });
+        if (actRes.ok) {
+          const actData = await actRes.json();
+          createdActivityId = actData.id ?? null;
+        }
+      }
+
+      // 4. Mark linked task as done (jika datang dari halaman Rencana)
+      if (taskId) {
+        await fetch(`/api/tasks/${taskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "done",
+            ...(createdActivityId ? { activityId: createdActivityId } : {}),
           }),
         });
       }
@@ -200,6 +218,13 @@ function MOMFormInner() {
             <p className="text-xs md:text-sm text-gray-500 mt-0.5">Paste catatan meeting mentah → AI akan strukturkan otomatis</p>
           </div>
         </div>
+
+        {taskId && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800 mb-4 flex items-center gap-2">
+            <CheckCircle2 size={15} className="shrink-0 text-yellow-600" />
+            Rencana akan otomatis ditandai <strong>Selesai</strong> setelah MOM ini disimpan.
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 space-y-4 md:space-y-5">
           {/* Prospect & Tanggal */}
