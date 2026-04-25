@@ -64,32 +64,34 @@ export default function MOMDetailPage({ params }: { params: Promise<{ id: string
   if (!mom) return <div className="p-6 text-center text-gray-500">MOM tidak ditemukan</div>;
 
   return (
-    <div className="p-6 max-w-3xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/mom" className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></Link>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{mom.title}</h1>
+    <div className="p-4 md:p-6 max-w-3xl">
+      <div className="flex items-start justify-between mb-4 md:mb-6 gap-2">
+        <div className="flex items-start gap-3 min-w-0">
+          <Link href="/mom" className="text-gray-400 hover:text-gray-600 mt-1 shrink-0"><ArrowLeft size={20} /></Link>
+          <div className="min-w-0">
+            <h1 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">{mom.title}</h1>
             {mom.prospect && (
               <div className="text-xs text-blue-600 mt-0.5">{mom.prospect.namaProspek}</div>
             )}
           </div>
         </div>
         {canEdit && (
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 shrink-0">
             <Link href={`/mom/${id}/edit`}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-700">
-              <Edit2 size={14} /> Edit
+              className="flex items-center gap-1 text-sm px-2.5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-gray-700">
+              <Edit2 size={14} />
+              <span className="hidden sm:inline">Edit</span>
             </Link>
             <button onClick={handleDelete}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 border border-red-200 text-red-600 rounded-xl hover:bg-red-50">
-              <Trash2 size={14} /> Hapus
+              className="flex items-center gap-1 text-sm px-2.5 py-2 border border-red-200 text-red-600 rounded-xl hover:bg-red-50">
+              <Trash2 size={14} />
+              <span className="hidden sm:inline">Hapus</span>
             </button>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 space-y-4 md:space-y-5">
         <div className="flex flex-wrap gap-4 pb-4 border-b border-gray-100 text-sm text-gray-600">
           <div className="flex items-center gap-1.5">
             <Calendar size={14} className="text-gray-400" />

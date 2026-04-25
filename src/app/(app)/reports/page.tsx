@@ -51,10 +51,10 @@ export default function ReportsPage() {
   const totalProspects = Object.values(data.stageCount).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Laporan</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Rekap performa pipeline & sales</p>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Laporan</h1>
+        <p className="text-gray-500 text-xs md:text-sm mt-0.5">Rekap performa pipeline & sales</p>
       </div>
        {/* Ringkasan Northstar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 lg:col-span-3">

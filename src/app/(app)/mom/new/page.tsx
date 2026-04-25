@@ -175,16 +175,16 @@ function MOMFormInner() {
   // ─── Step 1: Input ───────────────────────────────────────────────
   if (step === "input") {
     return (
-      <div className="p-6 max-w-3xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Link href="/mom" className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></Link>
+      <div className="p-4 md:p-6 max-w-3xl">
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <Link href="/mom" className="text-gray-400 hover:text-gray-600 shrink-0"><ArrowLeft size={20} /></Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Buat MOM dengan AI</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Paste catatan meeting mentah → AI akan strukturkan otomatis</p>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Buat MOM dengan AI</h1>
+            <p className="text-xs md:text-sm text-gray-500 mt-0.5">Paste catatan meeting mentah → AI akan strukturkan otomatis</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 space-y-4 md:space-y-5">
           {/* Prospect & Tanggal */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 md:col-span-1">
@@ -269,23 +269,24 @@ function MOMFormInner() {
 
   // ─── Step 2: Review & Edit Draft ─────────────────────────────────
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center gap-3 mb-2">
-        <button onClick={() => setStep("input")} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={20} /></button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Review Draft AI</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Edit sesuai kebutuhan, lalu simpan semua sekaligus</p>
+    <div className="p-4 md:p-6 max-w-4xl">
+      <div className="flex items-center gap-2 mb-2">
+        <button onClick={() => setStep("input")} className="text-gray-400 hover:text-gray-600 shrink-0"><ArrowLeft size={20} /></button>
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Review Draft AI</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-0.5">Edit sesuai kebutuhan, lalu simpan semua sekaligus</p>
         </div>
         <button
           onClick={() => setStep("input")}
-          className="ml-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5"
+          className="ml-auto shrink-0 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1.5"
         >
-          <RefreshCw size={12} /> Generate ulang
+          <RefreshCw size={12} />
+          <span className="hidden sm:inline">Generate ulang</span>
         </button>
       </div>
 
       {/* Progress breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div className="flex items-center gap-2 text-xs text-gray-400 mb-4 md:mb-6">
         <span className="text-gray-400">Catatan mentah</span>
         <ChevronRight size={12} />
         <span className="text-yellow-600 font-semibold">Review draft</span>
@@ -297,11 +298,11 @@ function MOMFormInner() {
         <div className="space-y-5">
           {/* ── MOM Section ─────────────────────────────────── */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 bg-gray-50">
               <CheckCircle2 size={16} className="text-green-500" />
               <h2 className="font-semibold text-gray-900">Minutes of Meeting</h2>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 md:p-6 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Judul</label>
                 <input
@@ -310,7 +311,7 @@ function MOMFormInner() {
                   className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white font-medium"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Tanggal</label>
                   <input type="date" value={tanggal} onChange={(e) => setTanggal(e.target.value)}
@@ -354,7 +355,7 @@ function MOMFormInner() {
           {/* ── Pipeline Update ──────────────────────────────── */}
           {selectedProspectId && (
             <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-colors ${applyPipeline ? "border-blue-200" : "border-gray-100"}`}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-2">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ${applyPipeline ? "border-blue-500 bg-blue-500" : "border-gray-300"}`}
                     onClick={() => setApplyPipeline(!applyPipeline)}>
@@ -367,11 +368,11 @@ function MOMFormInner() {
                 </span>
               </div>
               {applyPipeline && (
-                <div className="p-6 space-y-4">
+                <div className="p-4 md:p-6 space-y-4">
                   <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-800">
                     <span className="font-medium">AI Insight:</span> {draft.pipeline.statusUpdate}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Stage Baru</label>
                       <select value={draft.pipeline.suggestedStage}
@@ -404,7 +405,7 @@ function MOMFormInner() {
           {/* ── Activity Log ─────────────────────────────────── */}
           {selectedProspectId && (
             <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-colors ${applyActivity ? "border-purple-200" : "border-gray-100"}`}>
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center gap-2">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ${applyActivity ? "border-purple-500 bg-purple-500" : "border-gray-300"}`}
                     onClick={() => setApplyActivity(!applyActivity)}>
@@ -417,8 +418,8 @@ function MOMFormInner() {
                 </span>
               </div>
               {applyActivity && (
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 md:p-6 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Tipe Aktivitas</label>
                       <select value={draft.activity.tipeAktivitas}

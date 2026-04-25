@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 interface Activity {
@@ -79,6 +79,8 @@ export default function ActivitiesClient() {
   const [dismissedProspectId, setDismissedProspectId] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterTipe, setFilterTipe] = useState("");
 
   const fetchActivities = (prospectId?: string) => {
     const url = prospectId ? `/api/activities?prospectId=${encodeURIComponent(prospectId)}` : "/api/activities";
@@ -149,12 +151,26 @@ export default function ActivitiesClient() {
   const selectedProspect = prospects.find((p) => p.id === effectiveProspectId);
   const modalOpen = showModal || (!!prospectIdFromQuery && dismissedProspectId !== prospectIdFromQuery);
 
+  const filtered = (activities ?? []).filter((a) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q ||
+      (a.prospect?.namaProspek || a.namaProspek || "").toLowerCase().includes(q) ||
+      a.sales.name.toLowerCase().includes(q) ||
+      (a.topikHasil || "").toLowerCase().includes(q);
+    const matchTipe = !filterTipe || a.tipeAktivitas === filterTipe;
+    return matchSearch && matchTipe;
+  });
+
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Activity Log</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Rekap aktivitas harian sales Â· {activities?.length ?? 0} aktivitas</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Activity Log</h1>
+          <p className="text-gray-500 text-xs md:text-sm mt-0.5">
+            {search || filterTipe
+              ? `${filtered.length} dari ${activities?.length ?? 0} aktivitas`
+              : `${activities?.length ?? 0} aktivitas`}
+          </p>
         </div>
         <button
           onClick={() => {
@@ -163,10 +179,39 @@ export default function ActivitiesClient() {
             setDismissedProspectId("");
             if (prospectIdFromQuery) handleProspectChange(prospectIdFromQuery);
           }}
-          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2.5 rounded-xl text-sm"
+          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-sm"
         >
-          <Plus size={16} /> Catat Aktivitas
+          <Plus size={16} />
+          <span className="hidden sm:inline">Catat Aktivitas</span>
+          <span className="sm:hidden">Catat</span>
         </button>
+      </div>
+
+      {/* Search & Filter bar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 p-3 md:p-4 space-y-2 md:space-y-0 md:flex md:items-center md:gap-3">
+        <div className="flex items-center gap-2 flex-1">
+          <Search size={16} className="text-gray-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="Cari prospek atau sales..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 text-sm outline-none min-w-0 text-gray-900 bg-white"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600 shrink-0">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <select
+          value={filterTipe}
+          onChange={(e) => setFilterTipe(e.target.value)}
+          className="w-full md:w-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none text-gray-900 bg-white"
+        >
+          <option value="">Semua Tipe</option>
+          {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
       </div>
 
       {activities === null ? (
@@ -174,55 +219,78 @@ export default function ActivitiesClient() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Tanggal</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Sales</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Tipe</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Topik / Hasil</th>
-                <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activities.map((a) => (
-                <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                    {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{a.sales.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-medium">{a.tipeAktivitas}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700 font-medium">{a.prospect?.namaProspek || a.namaProspek || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">{a.topikHasil || "-"}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <span>{a.nextStage || "-"}</span>
-                      {a.linkMOM && (
-                        <a
-                          href={a.linkMOM}
-                          className="text-xs text-yellow-700 hover:text-yellow-800 underline underline-offset-2"
-                        >
-                          MOM
-                        </a>
-                      )}
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Tanggal</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Sales</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Tipe</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Topik / Hasil</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
                 </tr>
-              ))}
-              {activities.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-400">
-                    Belum ada aktivitas
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map((a) => (
+                  <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{a.sales.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full font-medium">{a.tipeAktivitas}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 font-medium">{a.prospect?.namaProspek || a.namaProspek || "-"}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-xs truncate">{a.topikHasil || "-"}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">{a.nextStage || "-"}</span>
+                        {a.linkMOM && <a href={a.linkMOM} className="text-xs text-yellow-700 hover:underline">MOM</a>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} className="text-center py-12 text-gray-400">
+                    {search || filterTipe ? "Tidak ada aktivitas yang cocok" : "Belum ada aktivitas"}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-100">
+                {search || filterTipe ? "Tidak ada aktivitas yang cocok" : "Belum ada aktivitas"}
+              </div>
+            )}
+            {filtered.map((a) => (
+              <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{a.tipeAktivitas}</span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(a.tanggal).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+                <div className="font-semibold text-gray-900 text-sm mb-0.5">{a.prospect?.namaProspek || a.namaProspek || "-"}</div>
+                <div className="text-xs text-gray-400 mb-2">{a.sales.name}</div>
+                {a.topikHasil && <p className="text-sm text-gray-600 leading-relaxed mb-2 line-clamp-2">{a.topikHasil}</p>}
+                <div className="flex items-center justify-between">
+                  {a.nextStage
+                    ? <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{a.nextStage}</span>
+                    : <span />
+                  }
+                  {a.linkMOM && <a href={a.linkMOM} className="text-xs text-yellow-700 font-medium underline underline-offset-2">Lihat MOM</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {modalOpen && (

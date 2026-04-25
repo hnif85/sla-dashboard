@@ -46,10 +46,10 @@ export default function FunnelStagesPage() {
   );
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Funnel Stages & SLA</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Konfigurasi SLA per stage pipeline</p>
+    <div className="p-4 md:p-6">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Funnel Stages & SLA</h1>
+        <p className="text-gray-500 text-xs md:text-sm mt-0.5">Konfigurasi SLA per stage pipeline</p>
       </div>
 
       <div className="space-y-4">

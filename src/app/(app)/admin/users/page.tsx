@@ -68,22 +68,24 @@ export default function AdminUsersPage() {
   const fc = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kelola User</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{users.length} user terdaftar</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Kelola User</h1>
+          <p className="text-gray-500 text-xs md:text-sm mt-0.5">{users.length} user terdaftar</p>
         </div>
         <button onClick={openAdd}
-          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-4 py-2.5 rounded-xl text-sm">
-          <Plus size={16} /> Tambah User
+          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-sm">
+          <Plus size={16} />
+          <span className="hidden sm:inline">Tambah User</span>
+          <span className="sm:hidden">Tambah</span>
         </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400" /></div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
