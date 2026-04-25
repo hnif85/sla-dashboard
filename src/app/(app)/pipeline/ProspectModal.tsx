@@ -8,6 +8,17 @@ const STAGES = [
   "7. Negosiasi", "8. Pilot (opsional)", "9. Deal/Closed Won", "0. Closed Lost",
 ];
 
+const ACTIVITY_TYPES = [
+  "Email", "WA/Call", "Meeting Online", "Meeting Offline",
+  "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
+];
+
+interface FunnelStage {
+  id: string;
+  name: string;
+  slaTarget: number;
+}
+
 const CHANNELS = ["Impact+", "Academy", "FinanceWhiz", "Marketplace", "Direct", "Referral", "Event", "Lainnya"];
 const PRODUCTS = ["Multi-Product / Bundle", "Impact+", "Academy", "FinanceWhiz", "Marketplace Tools", "Lainnya"];
 
@@ -21,6 +32,7 @@ interface ProspectModalProps {
 
 export default function ProspectModal({ onClose, onSaved, userRole, initialData, prospectId }: ProspectModalProps) {
   const [salesList, setSalesList] = useState<Array<{ id: string; name: string }>>([]);
+  const [funnelStages, setFunnelStages] = useState<FunnelStage[]>([]);
   const [form, setForm] = useState({
     namaProspek: "",
     channel: "",
@@ -40,12 +52,31 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // Task creation from nextAction
+  const [createTask, setCreateTask] = useState(false);
+  const [taskTipe, setTaskTipe] = useState("Follow Up");
+  const [taskDate, setTaskDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3); // default +3 days
+    return d.toISOString().split("T")[0];
+  });
 
   useEffect(() => {
     if (userRole === "admin") {
       fetch("/api/admin/users").then((r) => r.json()).then(setSalesList);
     }
+    fetch("/api/admin/funnel-stages").then((r) => r.ok ? r.json() : []).then(setFunnelStages);
   }, [userRole]);
+
+  // Auto-update task date when stage changes based on SLA target
+  useEffect(() => {
+    const matched = funnelStages.find((s) => s.name === (form.stage as string));
+    if (matched) {
+      const d = new Date();
+      d.setDate(d.getDate() + matched.slaTarget);
+      setTaskDate(d.toISOString().split("T")[0]);
+    }
+  }, [form.stage, funnelStages]);
 
   const handleChange = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -63,12 +94,30 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
       body: JSON.stringify(form),
     });
 
-    setSaving(false);
     if (!res.ok) {
+      setSaving(false);
       const data = await res.json();
       setError(data.error || "Gagal menyimpan");
       return;
     }
+
+    const savedData = await res.json();
+
+    // Create task for nextAction if toggled
+    if (createTask && (form.nextAction as string).trim()) {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          judul: form.nextAction as string,
+          tipeAktivitas: taskTipe,
+          tanggalRencana: taskDate,
+          prospectId: (savedData.id || prospectId) || null,
+        }),
+      });
+    }
+
+    setSaving(false);
     onSaved();
   };
 
@@ -210,6 +259,42 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
                 placeholder="Follow up final pricing..."
               />
             </div>
+            {(form.nextAction as string).trim() && (
+              <div className="col-span-2">
+                <div
+                  className="flex items-center gap-2 cursor-pointer select-none mb-2"
+                  onClick={() => setCreateTask((v) => !v)}
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${createTask ? "border-yellow-500 bg-yellow-500" : "border-gray-300"}`}>
+                    {createTask && <svg viewBox="0 0 10 10" fill="none" className="w-2.5 h-2.5"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <span className="text-sm text-gray-700">Buat task untuk next action ini</span>
+                </div>
+                {createTask && (
+                  <div className="flex gap-3 mt-1 pl-6">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Tipe</label>
+                      <select
+                        value={taskTipe}
+                        onChange={(e) => setTaskTipe(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                      >
+                        {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Tanggal Rencana</label>
+                      <input
+                        type="date"
+                        value={taskDate}
+                        onChange={(e) => setTaskDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             {(form.stage as string).includes("Lost") && (
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Reason Lost</label>

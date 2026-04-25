@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
+import { getCached, setCached } from "@/lib/fetch-cache";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, Target, Activity, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { TrendingUp, Target, Activity, AlertTriangle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
+import Link from "next/link";
 
 interface DashboardData {
   summary: {
@@ -22,6 +24,16 @@ interface DashboardData {
     sales: { name: string };
   }>;
   salesPerformance: Array<{ name: string; closed: number; pipeline: number; total: number }>;
+}
+
+interface TaskItem {
+  id: string;
+  judul: string;
+  tipeAktivitas: string;
+  tanggalRencana: string;
+  status: string;
+  prospect: { id: string; namaProspek: string } | null;
+  sales: { id: string; name: string };
 }
 
 function isDashboardData(value: unknown): value is DashboardData {
@@ -69,18 +81,29 @@ const SLA_COLORS: Record<string, string> = {
   "Closed": "bg-gray-100 text-gray-600",
 };
 
+function getTaskBadge(task: TaskItem) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tanggal = new Date(task.tanggalRencana);
+  tanggal.setHours(0, 0, 0, 0);
+  if (tanggal < today) return { label: "Terlambat", cls: "bg-red-100 text-red-700" };
+  return { label: "Hari Ini", cls: "bg-yellow-100 text-yellow-700" };
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getCached<DashboardData>("/api/dashboard") === null);
   const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      setLoading(true);
-      setError(null);
+      // Show stale data instantly while refreshing in background
+      const stale = getCached<DashboardData>("/api/dashboard");
+      if (stale) { setData(stale); setLoading(false); }
 
       try {
         const res = await fetch("/api/dashboard");
@@ -91,37 +114,35 @@ export default function DashboardPage() {
             (body as { error?: unknown } | null)?.error && typeof (body as { error?: unknown }).error === "string"
               ? ((body as { error: string }).error as string)
               : `Request failed (${res.status})`;
-
-          if (!cancelled) {
-            setData(null);
-            setError(message);
-          }
+          if (!cancelled && !stale) { setData(null); setError(message); }
           return;
         }
 
         if (!isDashboardData(body)) {
-          if (!cancelled) {
-            setData(null);
-            setError("Unexpected response from server.");
-          }
+          if (!cancelled && !stale) { setData(null); setError("Unexpected response from server."); }
           return;
         }
 
-        if (!cancelled) setData(body);
+        setCached("/api/dashboard", body);
+        if (!cancelled) { setData(body); setError(null); }
       } catch {
-        if (!cancelled) {
-          setData(null);
-          setError("Network error.");
-        }
+        if (!cancelled && !stale) { setData(null); setError("Network error."); }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
+    async function loadTasks() {
+      const today = new Date().toISOString().split("T")[0];
+      try {
+        const res = await fetch(`/api/tasks?status=planned&dateTo=${today}`);
+        if (res.ok && !cancelled) setTasks(await res.json());
+      } catch { /* ignore */ }
+    }
+
     load();
-    return () => {
-      cancelled = true;
-    };
+    loadTasks();
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) return (
@@ -281,6 +302,51 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Rencana Hari Ini & Terlambat */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={18} className="text-yellow-500" />
+            <h2 className="font-semibold text-gray-900">Rencana Hari Ini &amp; Terlambat</h2>
+          </div>
+          <Link href="/plans" className="text-xs text-yellow-600 hover:text-yellow-700 font-medium">
+            Lihat semua →
+          </Link>
+        </div>
+        {tasks.length === 0 ? (
+          <div className="text-sm text-gray-400 text-center py-6">Tidak ada rencana yang terlambat atau jatuh tempo hari ini</div>
+        ) : (
+          <div className="space-y-2">
+            {tasks.slice(0, 5).map((task) => {
+              const badge = getTaskBadge(task);
+              return (
+                <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 shrink-0 ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">{task.judul}</div>
+                    <div className="text-xs text-gray-400">
+                      {task.tipeAktivitas}
+                      {task.prospect && <> · {task.prospect.namaProspek}</>}
+                      {user?.role === "admin" && <> · {task.sales.name}</>}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 whitespace-nowrap shrink-0">
+                    {new Date(task.tanggalRencana).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                  </div>
+                </div>
+              );
+            })}
+            {tasks.length > 5 && (
+              <Link href="/plans" className="block text-center text-xs text-yellow-600 hover:text-yellow-700 font-medium pt-1">
+                +{tasks.length - 5} lagi
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ model User {
   activities  Activity[]
   moms        MOM[]
   historyLogs PipelineHistory[]
+  tasks       Task[]
 }
 
 model FunnelStage {
@@ -62,6 +63,7 @@ model Prospect {
   history    PipelineHistory[]
   activities Activity[]
   moms       MOM[]
+  tasks      Task[]
 }
 
 model PipelineHistory {
@@ -94,25 +96,44 @@ model Activity {
 
   sales    User      @relation(fields: [salesId], references: [id])
   prospect Prospect? @relation(fields: [prospectId], references: [id])
+  task     Task?
 }
 
 model MOM {
-  id          String    @id @default(cuid())
-  title       String
-  tanggal     DateTime  @default(now())
-  salesId     String
-  prospectId  String?
+  id           String    @id @default(cuid())
+  title        String
+  tanggal      DateTime  @default(now())
+  salesId      String
+  prospectId   String?
   participants String?
-  agenda      String?
-  discussion  String?
-  decisions   String?
-  actionItems String?
-  nextMeeting DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  agenda       String?
+  discussion   String?
+  decisions    String?
+  actionItems  String?
+  nextMeeting  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   sales    User      @relation(fields: [salesId], references: [id])
   prospect Prospect? @relation(fields: [prospectId], references: [id])
+}
+
+model Task {
+  id             String    @id @default(cuid())
+  salesId        String
+  prospectId     String?
+  activityId     String?   @unique
+  judul          String
+  tipeAktivitas  String
+  tanggalRencana DateTime
+  catatan        String?
+  status         String    @default("planned")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sales    User      @relation(fields: [salesId], references: [id])
+  prospect Prospect? @relation(fields: [prospectId], references: [id])
+  activity Activity? @relation(fields: [activityId], references: [id])
 }
 
 model Config {

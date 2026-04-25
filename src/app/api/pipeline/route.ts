@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getCachedFunnelStages } from "@/lib/server-cache";
 import { getSessionFromRequest } from "@/lib/auth";
 import { differenceInDays } from "date-fns";
 
@@ -17,13 +18,26 @@ export async function GET(req: NextRequest) {
 
   const where = session.role === "sales" ? { salesId: session.userId } : {};
 
+  // Fetch prospects + cached funnel stages in parallel
   const [prospects, funnelStages] = await Promise.all([
     prisma.prospect.findMany({
       where,
-      include: { sales: { select: { id: true, name: true } } },
+      select: {
+        id: true,
+        namaProspek: true,
+        channel: true,
+        stage: true,
+        nextAction: true,
+        estUmkmReach: true,
+        estNilaiDeal: true,
+        probability: true,
+        weightedUmkm: true,
+        tglUpdateStage: true,
+        sales: { select: { id: true, name: true } },
+      },
       orderBy: { updatedAt: "desc" },
     }),
-    prisma.funnelStage.findMany(),
+    getCachedFunnelStages(),
   ]);
 
   const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
@@ -46,7 +60,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const salesId = session.role === "sales" ? session.userId : (body.salesId || session.userId);
 
-  const stage = await prisma.funnelStage.findFirst({ where: { name: body.stage } });
+  const funnelStages = await getCachedFunnelStages();
+  const stage = funnelStages.find((s) => s.name === body.stage);
   const slaMax = stage?.slaMax ?? 7;
   const statusSLA = computeSLAStatus(body.stage || "1. Lead/Prospek", new Date(), slaMax);
 

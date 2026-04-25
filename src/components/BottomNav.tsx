@@ -2,12 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Target, Activity, FileText, TrendingUp, Settings } from "lucide-react";
+import { LayoutDashboard, Target, Activity, FileText, TrendingUp, Settings, CalendarDays } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard",  label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "sales"] },
   { href: "/pipeline",   label: "Pipeline",   icon: Target,          roles: ["admin", "sales"] },
   { href: "/activities", label: "Aktivitas",  icon: Activity,        roles: ["admin", "sales"] },
+  { href: "/plans",      label: "Rencana",    icon: CalendarDays,    roles: ["admin", "sales"] },
   { href: "/mom",        label: "MOM",        icon: FileText,        roles: ["admin", "sales"] },
   { href: "/reports",    label: "Laporan",    icon: TrendingUp,      roles: ["admin", "sales"] },
   { href: "/admin/users",label: "Admin",      icon: Settings,        roles: ["admin"] },

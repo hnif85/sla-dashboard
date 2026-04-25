@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Search, Filter, Eye, ChevronRight } from "lucide-react";
+import { Plus, Search, Eye, ChevronRight } from "lucide-react";
 import ProspectModal from "./ProspectModal";
+import { getCached, setCached, bustCachePrefix } from "@/lib/fetch-cache";
 
 interface Prospect {
   id: string;
@@ -30,8 +31,8 @@ const SLA_STYLES: Record<string, string> = {
 
 export default function PipelinePage() {
   const { user } = useAuth();
-  const [prospects, setProspects] = useState<Prospect[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [prospects, setProspects] = useState<Prospect[]>(() => getCached<Prospect[]>("/api/pipeline") ?? []);
+  const [loading, setLoading] = useState(() => getCached<Prospect[]>("/api/pipeline") === null);
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [filterSLA, setFilterSLA] = useState("");
@@ -40,11 +41,16 @@ export default function PipelinePage() {
   const load = () => {
     fetch("/api/pipeline")
       .then((r) => r.json())
-      .then(setProspects)
+      .then((data) => { setCached("/api/pipeline", data); setProspects(data); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    // Always refresh in background even if we have cached data
+    const stale = getCached<Prospect[]>("/api/pipeline");
+    if (stale) setLoading(false);
+    load();
+  }, []);
 
   const filtered = prospects.filter((p) => {
     const matchSearch = !search || p.namaProspek.toLowerCase().includes(search.toLowerCase()) ||
@@ -202,7 +208,7 @@ export default function PipelinePage() {
       {showModal && (
         <ProspectModal
           onClose={() => setShowModal(false)}
-          onSaved={() => { setShowModal(false); load(); }}
+          onSaved={() => { setShowModal(false); bustCachePrefix("/api/pipeline"); bustCachePrefix("/api/dashboard"); load(); }}
           userRole={user?.role || "sales"}
         />
       )}

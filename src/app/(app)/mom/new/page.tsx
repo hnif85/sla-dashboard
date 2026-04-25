@@ -64,6 +64,8 @@ function MOMFormInner() {
   const [draft, setDraft] = useState<AIDraft | null>(null);
   const [applyPipeline, setApplyPipeline] = useState(true);
   const [applyActivity, setApplyActivity] = useState(true);
+  const [createTaskNextMeeting, setCreateTaskNextMeeting] = useState(true);
+  const [taskTipeNextMeeting, setTaskTipeNextMeeting] = useState("Meeting Online");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -161,6 +163,21 @@ function MOMFormInner() {
             nextStage: draft.activity.nextStage,
             catatan: draft.activity.catatan,
             linkMOM: `/mom/${momData.id}`,
+          }),
+        });
+      }
+
+      // 4. Create task for next meeting (if toggled + nextMeeting set)
+      if (createTaskNextMeeting && draft.mom.nextMeeting) {
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            judul: `Next Meeting — ${selectedProspect?.namaProspek || "Prospek"}`,
+            tipeAktivitas: taskTipeNextMeeting,
+            tanggalRencana: draft.mom.nextMeeting,
+            prospectId: selectedProspectId || null,
+            catatan: `Dari MOM: ${draft.mom.title}`,
           }),
         });
       }
@@ -454,6 +471,54 @@ function MOMFormInner() {
             </div>
           )}
 
+          {/* ── Task untuk Next Meeting ──────────────────────── */}
+          {draft.mom.nextMeeting && (
+            <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-colors ${createTaskNextMeeting ? "border-yellow-300" : "border-gray-100"}`}>
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer ${createTaskNextMeeting ? "border-yellow-500 bg-yellow-500" : "border-gray-300"}`}
+                    onClick={() => setCreateTaskNextMeeting(!createTaskNextMeeting)}
+                  >
+                    {createTaskNextMeeting && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                  <h2 className="font-semibold text-gray-900">Buat Rencana untuk Next Meeting</h2>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${createTaskNextMeeting ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-500"}`}>
+                  {createTaskNextMeeting ? `${new Date(draft.mom.nextMeeting).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}` : "Skip"}
+                </span>
+              </div>
+              {createTaskNextMeeting && (
+                <div className="p-4 md:p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Tipe Rencana</label>
+                      <select
+                        value={taskTipeNextMeeting}
+                        onChange={(e) => setTaskTipeNextMeeting(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white"
+                      >
+                        {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">Tanggal Rencana</label>
+                      <input
+                        type="date"
+                        value={draft.mom.nextMeeting}
+                        onChange={(e) => updateDraftMom("nextMeeting", e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Rencana: &quot;Next Meeting — {selectedProspect?.namaProspek || "Prospek"}&quot; akan dibuat otomatis di halaman Rencana.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {saveError && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">{saveError}</div>
           )}
@@ -471,7 +536,7 @@ function MOMFormInner() {
               ) : (
                 <>
                   <CheckCircle2 size={16} />
-                  Simpan MOM{applyPipeline && selectedProspectId ? " + Pipeline" : ""}{applyActivity && selectedProspectId ? " + Activity" : ""}
+                  Simpan MOM{applyPipeline && selectedProspectId ? " + Pipeline" : ""}{applyActivity && selectedProspectId ? " + Activity" : ""}{createTaskNextMeeting && draft?.mom.nextMeeting ? " + Rencana" : ""}
                 </>
               )}
             </button>

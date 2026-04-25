@@ -2,7 +2,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Clock, Edit2, History, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, Edit2, History, FileText, Trash2, CalendarDays, Plus } from "lucide-react";
 import Link from "next/link";
 import ProspectModal from "../ProspectModal";
 
@@ -32,6 +32,28 @@ interface MOM {
   tanggal: string;
   participants: string;
   sales: { name: string };
+}
+
+interface TaskItem {
+  id: string;
+  judul: string;
+  tipeAktivitas: string;
+  tanggalRencana: string;
+  status: string;
+  catatan: string | null;
+  prospect: { id: string; namaProspek: string } | null;
+  sales: { id: string; name: string };
+  activity: { id: string } | null;
+}
+
+function getTaskStatus(task: TaskItem) {
+  if (task.status === "done") return { label: "Selesai", cls: "bg-green-100 text-green-700" };
+  if (task.status === "cancelled") return { label: "Dibatalkan", cls: "bg-gray-100 text-gray-500" };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tanggal = new Date(task.tanggalRencana); tanggal.setHours(0, 0, 0, 0);
+  if (tanggal < today) return { label: "Terlambat", cls: "bg-red-100 text-red-700" };
+  if (tanggal.getTime() === today.getTime()) return { label: "Hari Ini", cls: "bg-yellow-100 text-yellow-700" };
+  return { label: "Akan Datang", cls: "bg-blue-100 text-blue-700" };
 }
 
 interface Prospect {
@@ -67,7 +89,7 @@ const SLA_STYLES: Record<string, string> = {
   "Closed": "bg-gray-100 text-gray-500",
 };
 
-const TAB_ITEMS = ["Detail", "History", "Activity Log", "MOM"];
+const TAB_ITEMS = ["Detail", "History", "Activity Log", "Rencana", "MOM"];
 
 export default function ProspectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -78,6 +100,8 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
   const [tab, setTab] = useState("Detail");
   const [showEdit, setShowEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
   const load = () => {
     fetch(`/api/pipeline/${id}`)
@@ -86,6 +110,14 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (tab !== "Rencana") return;
+    setTasksLoading(true);
+    fetch(`/api/tasks?prospectId=${id}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => { setTasks(data); setTasksLoading(false); });
+  }, [tab, id]);
 
   const handleDelete = async () => {
     if (!confirm("Yakin hapus prospek ini?")) return;
@@ -151,6 +183,9 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
             {t}
             {t === "History" && prospect.history.length > 0 && (
               <span className="ml-1 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{prospect.history.length}</span>
+            )}
+            {t === "Rencana" && tasks.length > 0 && (
+              <span className="ml-1 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{tasks.length}</span>
             )}
           </button>
         ))}
@@ -326,6 +361,57 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "Rencana" && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarDays size={18} className="text-gray-400" />
+              <h2 className="font-semibold text-gray-900">Rencana Kegiatan</h2>
+            </div>
+            <Link
+              href={`/plans?prospectId=${id}`}
+              className="flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-700 font-medium"
+            >
+              <Plus size={12} />
+              Tambah Rencana
+            </Link>
+          </div>
+          {tasksLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400" />
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="text-center text-gray-400 py-8">Belum ada rencana untuk prospek ini</div>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((task) => {
+                const s = getTaskStatus(task);
+                return (
+                  <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 shrink-0 ${s.cls}`}>
+                      {s.label}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900">{task.judul}</div>
+                      <div className="text-xs text-gray-400">{task.tipeAktivitas} · {task.sales.name}</div>
+                      {task.catatan && <div className="text-xs text-gray-400 mt-0.5 italic">{task.catatan}</div>}
+                    </div>
+                    <div className="text-xs text-gray-400 whitespace-nowrap shrink-0 flex flex-col items-end gap-1">
+                      <span>{new Date(task.tanggalRencana).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
+                      {task.status === "done" && task.activity && (
+                        <Link href={`/activities?id=${task.activity.id}`} className="text-yellow-600 hover:text-yellow-700 font-medium">
+                          → Lihat Aktivitas
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
