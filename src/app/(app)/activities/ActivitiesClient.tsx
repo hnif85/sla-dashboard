@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, X, Search, ExternalLink, Trash2 } from "lucide-react";
+import { Plus, X, Search, ExternalLink, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,6 +86,8 @@ export default function ActivitiesClient() {
   const [filterTipe, setFilterTipe] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const fetchActivities = (prospectId?: string) => {
     const url = prospectId ? `/api/activities?prospectId=${encodeURIComponent(prospectId)}` : "/api/activities";
@@ -176,6 +178,10 @@ export default function ActivitiesClient() {
     return matchSearch && matchTipe;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-4 md:mb-6">
@@ -210,7 +216,7 @@ export default function ActivitiesClient() {
             type="text"
             placeholder="Cari prospek atau sales..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="flex-1 text-sm outline-none min-w-0 text-gray-900 bg-white"
           />
           {search && (
@@ -221,7 +227,7 @@ export default function ActivitiesClient() {
         </div>
         <select
           value={filterTipe}
-          onChange={(e) => setFilterTipe(e.target.value)}
+          onChange={(e) => { setFilterTipe(e.target.value); setPage(1); }}
           className="w-full md:w-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none text-gray-900 bg-white"
         >
           <option value="">Semua Tipe</option>
@@ -250,7 +256,7 @@ export default function ActivitiesClient() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((a) => (
+                {paginated.map((a) => (
                   <tr
                     key={a.id}
                     onClick={() => setSelectedActivity(a)}
@@ -298,7 +304,7 @@ export default function ActivitiesClient() {
                 {search || filterTipe ? "Tidak ada aktivitas yang cocok" : "Belum ada aktivitas"}
               </div>
             )}
-            {filtered.map((a) => (
+            {paginated.map((a) => (
               <div
                 key={a.id}
                 onClick={() => setSelectedActivity(a)}
@@ -329,6 +335,57 @@ export default function ActivitiesClient() {
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-xs text-gray-400">
+                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} dari {filtered.length} aktivitas
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                  .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="px-1 text-gray-400 text-sm">…</span>
+                    ) : (
+                      <button
+                        key={item}
+                        onClick={() => setPage(item as number)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          safePage === item
+                            ? "bg-yellow-400 text-gray-900"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage === totalPages}
+                  className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
