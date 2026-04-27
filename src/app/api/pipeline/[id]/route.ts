@@ -62,6 +62,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const body = await req.json();
+
+  // Allow changing Sales PIC only for admins
+  const requestedSalesId = typeof body.salesId === "string" ? body.salesId.trim() : null;
+  if (requestedSalesId && requestedSalesId !== existing.salesId) {
+    if (session.role !== "admin") {
+      return NextResponse.json({ error: "Admin only" }, { status: 403 });
+    }
+    const newSales = await prisma.user.findUnique({
+      where: { id: requestedSalesId },
+      select: { id: true, active: true, role: true },
+    });
+    if (!newSales || !newSales.active || newSales.role !== "sales") {
+      return NextResponse.json({ error: "Sales PIC not found" }, { status: 400 });
+    }
+  }
+
   const stageChanged = body.stage && body.stage !== existing.stage;
   const tglUpdateStage = stageChanged ? new Date() : existing.tglUpdateStage;
 
@@ -69,13 +85,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const slaMax = stage?.slaMax ?? 7;
   const statusSLA = computeSLAStatus(body.stage || existing.stage, tglUpdateStage, slaMax);
 
-  const probability = body.probability != null ? parseFloat(body.probability) : existing.probability;
-  const estUmkm = body.estUmkmReach != null ? parseInt(body.estUmkmReach) : existing.estUmkmReach;
-  const estNilai = body.estNilaiDeal != null ? parseFloat(body.estNilaiDeal) : existing.estNilaiDeal;
+  const probability =
+    body.probability === "" ? null : body.probability != null ? parseFloat(body.probability) : existing.probability;
+  const estUmkm =
+    body.estUmkmReach === "" ? null : body.estUmkmReach != null ? parseInt(body.estUmkmReach) : existing.estUmkmReach;
+  const estNilai =
+    body.estNilaiDeal === "" ? null : body.estNilaiDeal != null ? parseFloat(body.estNilaiDeal) : existing.estNilaiDeal;
 
   const updated = await prisma.prospect.update({
     where: { id },
     data: {
+      salesId:
+        session.role === "admin" && body.salesId != null && String(body.salesId).trim() !== ""
+          ? body.salesId
+          : existing.salesId,
       namaProspek: body.namaProspek ?? existing.namaProspek,
       channel: body.channel ?? existing.channel,
       produkFokus: body.produkFokus ?? existing.produkFokus,

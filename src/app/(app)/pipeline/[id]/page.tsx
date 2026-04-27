@@ -467,6 +467,7 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
             probability: prospect.probability?.toString() || "",
             reasonLost: prospect.reasonLost,
             linkDokumen: prospect.linkDokumen,
+            salesId: prospect.sales.id,
           }}
           userRole={user?.role || "sales"}
           onClose={() => setShowEdit(false)}

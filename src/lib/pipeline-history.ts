@@ -3,6 +3,7 @@ import prisma from "./db";
 type ProspectData = Record<string, unknown>;
 
 const FIELD_LABELS: Record<string, string> = {
+  salesId: "Sales PIC",
   namaProspek: "Nama Prospek",
   channel: "Channel",
   produkFokus: "Produk Fokus",
