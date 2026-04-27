@@ -95,8 +95,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-5 border-t border-gray-100 text-center text-xs text-gray-400">
-            <div>Demo: admin@mwx.id / admin123</div>
-            <div className="mt-0.5">Sales: budi@mwx.id / sales123</div>
+           
           </div>
         </div>
       </div>
