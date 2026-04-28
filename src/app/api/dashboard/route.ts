@@ -13,13 +13,19 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const where = session.role === "sales" ? { salesId: session.userId } : {};
+  const prospectWhere = session.role === "sales"
+    ? { salesId: session.userId, deletedAt: null }
+    : { deletedAt: null };
+
+  const activityWhere = session.role === "sales"
+    ? { salesId: session.userId }
+    : {};
 
   try {
     // Prospects: select only fields needed for aggregation (no large text fields)
     const [prospects, activities, funnelStages, config] = await Promise.all([
       prisma.prospect.findMany({
-        where,
+        where: prospectWhere,
         select: {
           stage: true,
           tglUpdateStage: true,
@@ -30,7 +36,7 @@ export async function GET(req: NextRequest) {
         },
       }),
       prisma.activity.findMany({
-        where,
+        where: activityWhere,
         orderBy: { tanggal: "desc" },
         take: 10,
         select: {

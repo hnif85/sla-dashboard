@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
 
-  if (!prospect) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!prospect || prospect.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (session.role === "sales" && prospect.salesId !== session.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -55,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const existing = await prisma.prospect.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!existing || existing.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (session.role === "sales" && existing.salesId !== session.userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -136,6 +136,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (session.role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
   const { id } = await params;
-  await prisma.prospect.delete({ where: { id } });
+
+  const prospect = await prisma.prospect.findUnique({ where: { id } });
+  if (!prospect || prospect.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.prospect.update({ where: { id }, data: { deletedAt: new Date() } });
   return NextResponse.json({ success: true });
 }

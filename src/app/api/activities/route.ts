@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getSessionFromRequest } from "@/lib/auth";
+import { getCachedFunnelStages } from "@/lib/server-cache";
+import { differenceInDays } from "date-fns";
+
+function computeSLAStatus(stage: string, tglUpdateStage: Date, slaMax: number): string {
+  if (stage.includes("Closed")) return "Closed";
+  const days = differenceInDays(new Date(), tglUpdateStage);
+  if (days <= slaMax * 0.5) return "On Track";
+  if (days <= slaMax) return "At Risk";
+  return "Overdue";
+}
 
 export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
@@ -74,6 +84,46 @@ export async function POST(req: NextRequest) {
       },
       include: { sales: { select: { name: true } } },
     });
+
+    // Auto-update stage pipeline jika nextStage diisi dan berbeda dari stage saat ini
+    if (body.prospectId && body.nextStage) {
+      const prospect = await tx.prospect.findUnique({
+        where: { id: body.prospectId },
+        select: { stage: true },
+      });
+
+      if (prospect && prospect.stage !== body.nextStage) {
+        const funnelStages = await getCachedFunnelStages();
+        const stageInfo = funnelStages.find((s) => s.name === body.nextStage);
+        const slaMax = stageInfo?.slaMax ?? 7;
+        // Gunakan tanggal activity (bukan now) agar SLA dihitung dari waktu meeting sebenarnya
+        const stageChangeDate = body.tanggal ? new Date(body.tanggal) : new Date();
+        const statusSLA = computeSLAStatus(body.nextStage, stageChangeDate, slaMax);
+
+        await tx.prospect.update({
+          where: { id: body.prospectId },
+          data: {
+            stage: body.nextStage,
+            tglUpdateStage: stageChangeDate,
+            statusSLA,
+          },
+        });
+
+        // Catat perubahan stage ke pipeline history (dalam tx agar atomic)
+        const notes = [body.tipeAktivitas, body.topikHasil].filter(Boolean).join(" — ");
+        await tx.pipelineHistory.create({
+          data: {
+            prospectId: body.prospectId,
+            changedById: salesId,
+            fieldName: "Stage",
+            oldValue: prospect.stage,
+            newValue: body.nextStage,
+            notes: notes ? `Via Activity: ${notes}` : "Via Activity Log",
+            changedAt: stageChangeDate,
+          },
+        });
+      }
+    }
 
     return { activity };
   });

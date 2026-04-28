@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const where = session.role === "sales" ? { salesId: session.userId } : {};
+  const where = session.role === "sales"
+    ? { salesId: session.userId, deletedAt: null }
+    : { deletedAt: null };
 
   // Fetch prospects + cached funnel stages in parallel
   const [prospects, funnelStages] = await Promise.all([

@@ -36,6 +36,7 @@ export default function PipelinePage() {
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [filterSLA, setFilterSLA] = useState("");
+  const [filterSales, setFilterSales] = useState("");
   const [showModal, setShowModal] = useState(false);
 
   const load = () => {
@@ -57,10 +58,12 @@ export default function PipelinePage() {
       p.channel?.toLowerCase().includes(search.toLowerCase());
     const matchStage = !filterStage || p.stage === filterStage;
     const matchSLA = !filterSLA || p.statusSLA === filterSLA;
-    return matchSearch && matchStage && matchSLA;
+    const matchSales = !filterSales || p.sales.name === filterSales;
+    return matchSearch && matchStage && matchSLA && matchSales;
   });
 
   const stages = [...new Set(prospects.map((p) => p.stage))].sort();
+  const salesList = [...new Set(prospects.map((p) => p.sales.name))].sort();
 
   return (
     <div className="p-4 md:p-6">
@@ -92,11 +95,11 @@ export default function PipelinePage() {
             className="flex-1 text-sm outline-none min-w-0 text-gray-900 bg-white"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <select
             value={filterStage}
             onChange={(e) => setFilterStage(e.target.value)}
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
+            className="flex-1 min-w-[120px] text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
           >
             <option value="">Semua Stage</option>
             {stages.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -109,6 +112,16 @@ export default function PipelinePage() {
             <option value="">Semua SLA</option>
             {["On Track", "At Risk", "Overdue"].map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          {user?.role === "admin" && (
+            <select
+              value={filterSales}
+              onChange={(e) => setFilterSales(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
+            >
+              <option value="">Semua Sales</option>
+              {salesList.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
         </div>
       </div>
 
@@ -125,7 +138,7 @@ export default function PipelinePage() {
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Sales</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Stage</th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Est. UMKM</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prob.</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">SLA</th>
