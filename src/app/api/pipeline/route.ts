@@ -36,6 +36,12 @@ export async function GET(req: NextRequest) {
         weightedUmkm: true,
         tglUpdateStage: true,
         sales: { select: { id: true, name: true } },
+        // ambil 1 activity terbaru untuk effective date
+        activities: {
+          select: { tanggal: true },
+          orderBy: { tanggal: "desc" },
+          take: 1,
+        },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -45,11 +51,18 @@ export async function GET(req: NextRequest) {
   const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
   const now = new Date();
 
-  const result = prospects.map((p) => {
-    const hariDiStage = differenceInDays(now, new Date(p.tglUpdateStage));
+  const result = prospects.map(({ activities, ...p }) => {
+    // Gunakan tanggal terbaru antara perubahan stage dan activity log terakhir
+    const lastActivity = activities[0]?.tanggal;
+    const effectiveDate =
+      lastActivity && new Date(lastActivity) > new Date(p.tglUpdateStage)
+        ? new Date(lastActivity)
+        : new Date(p.tglUpdateStage);
+
+    const hariDiStage = differenceInDays(now, effectiveDate);
     const slaMax = stageMap[p.stage]?.slaMax ?? 7;
-    const statusSLA = computeSLAStatus(p.stage, new Date(p.tglUpdateStage), slaMax);
-    return { ...p, hariDiStage, statusSLA };
+    const statusSLA = computeSLAStatus(p.stage, effectiveDate, slaMax);
+    return { ...p, hariDiStage, statusSLA, tglUpdateStage: effectiveDate };
   });
 
   return NextResponse.json(result);

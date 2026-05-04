@@ -43,10 +43,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const funnelStage = await prisma.funnelStage.findFirst({ where: { name: prospect.stage } });
   const slaMax = funnelStage?.slaMax ?? 7;
-  const hariDiStage = differenceInDays(new Date(), new Date(prospect.tglUpdateStage));
-  const statusSLA = computeSLAStatus(prospect.stage, new Date(prospect.tglUpdateStage), slaMax);
 
-  return NextResponse.json({ ...prospect, hariDiStage, statusSLA });
+  // Gunakan tanggal terbaru antara perubahan stage dan activity log terakhir
+  const lastActivity = prospect.activities[0]?.tanggal; // activities sudah orderBy tanggal desc
+  const effectiveDate =
+    lastActivity && new Date(lastActivity) > new Date(prospect.tglUpdateStage)
+      ? new Date(lastActivity)
+      : new Date(prospect.tglUpdateStage);
+
+  const hariDiStage = differenceInDays(new Date(), effectiveDate);
+  const statusSLA = computeSLAStatus(prospect.stage, effectiveDate, slaMax);
+
+  return NextResponse.json({ ...prospect, hariDiStage, statusSLA, tglUpdateStage: effectiveDate });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
