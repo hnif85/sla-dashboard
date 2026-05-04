@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,7 +79,7 @@ function Th({ label, sortKey, current, dir, onSort, className = "" }: {
   );
 }
 
-export default function PipelinePage() {
+function PipelineContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [prospects, setProspects] = useState<Prospect[]>(() => getCached<Prospect[]>("/api/pipeline") ?? []);
@@ -289,5 +289,17 @@ export default function PipelinePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function PipelinePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400" />
+      </div>
+    }>
+      <PipelineContent />
+    </Suspense>
   );
 }
