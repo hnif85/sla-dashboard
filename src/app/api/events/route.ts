@@ -23,37 +23,42 @@ function parseTrainers(raw: unknown) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = getSessionFromRequest(req);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const session = getSessionFromRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const url = new URL(req.url);
-  const dateFrom = url.searchParams.get("dateFrom") || undefined;
-  const dateTo = url.searchParams.get("dateTo") || undefined;
+    const url = new URL(req.url);
+    const dateFrom = url.searchParams.get("dateFrom") || undefined;
+    const dateTo = url.searchParams.get("dateTo") || undefined;
 
-  const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {};
 
-  if (session.role === "sales") {
-    where.salesId = session.userId;
-  } else if (session.role === "trainer") {
-    // Trainers see only events they are assigned to
-    where.trainers = { some: { trainerId: session.userId } };
+    if (session.role === "sales") {
+      where.salesId = session.userId;
+    } else if (session.role === "trainer") {
+      // Trainers see only events they are assigned to
+      where.trainers = { some: { trainerId: session.userId } };
+    }
+    // admin sees all
+
+    if (dateFrom || dateTo) {
+      where.tanggal = {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(dateTo + "T23:59:59.999Z") } : {}),
+      };
+    }
+
+    const events = await prisma.event.findMany({
+      where,
+      include: INCLUDE,
+      orderBy: { tanggal: "desc" },
+    });
+
+    return NextResponse.json(events);
+  } catch (error) {
+    console.error("GET /api/events failed:", error);
+    return NextResponse.json({ error: "Failed to load events" }, { status: 500 });
   }
-  // admin sees all
-
-  if (dateFrom || dateTo) {
-    where.tanggal = {
-      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-      ...(dateTo ? { lte: new Date(dateTo + "T23:59:59.999Z") } : {}),
-    };
-  }
-
-  const events = await prisma.event.findMany({
-    where,
-    include: INCLUDE,
-    orderBy: { tanggal: "desc" },
-  });
-
-  return NextResponse.json(events);
 }
 
 export async function POST(req: NextRequest) {

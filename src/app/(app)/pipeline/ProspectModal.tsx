@@ -58,7 +58,7 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
   const [taskDate, setTaskDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3); // default +3 days
-    return d.toISOString().split("T")[0];
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   });
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
     if (matched) {
       const d = new Date();
       d.setDate(d.getDate() + matched.slaTarget);
-      setTaskDate(d.toISOString().split("T")[0]);
+      setTaskDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`);
     }
   }, [form.stage, funnelStages]);
 
@@ -180,7 +180,7 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kontak PIC</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kontak PIC, Nama jabatan. divisi</label>
               <input
                 value={form.kontakPIC as string}
                 onChange={(e) => handleChange("kontakPIC", e.target.value)}

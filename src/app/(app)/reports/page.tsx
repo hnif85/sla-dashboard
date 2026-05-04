@@ -49,7 +49,12 @@ const ACTIVITY_TYPES = [
 ];
 
 /* ─── Date helpers ──────────────────────────────────────────── */
-function toISO(d: Date) { return d.toISOString().split("T")[0]; }
+function toISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function getWeekBounds(offset = 0) {
   const now = new Date();
@@ -209,7 +214,7 @@ function ActivityRecapSection() {
               </thead>
               <tbody>
                 {salesList.map(([name, counts]) => {
-                  const total = Object.values(counts).reduce((s, x) => s + x, 0);
+                  const total = activeTypes.reduce((s, t) => s + (counts[t] || 0), 0);
                   return (
                     <tr key={name} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{name}</td>
@@ -246,7 +251,7 @@ function ActivityRecapSection() {
                     );
                   })}
                   <td className="px-4 py-3 text-center text-sm font-bold text-gray-900">
-                    {salesList.reduce((s, [, c]) => s + Object.values(c).reduce((a, b) => a + b, 0), 0)}
+                    {salesList.reduce((s, [, c]) => s + activeTypes.reduce((a, t) => a + (c[t] || 0), 0), 0)}
                   </td>
                 </tr>
               </tfoot>
@@ -256,7 +261,7 @@ function ActivityRecapSection() {
           {/* ── Mobile cards ── */}
           <div className="md:hidden space-y-3">
             {salesList.map(([name, counts], i) => {
-              const total = Object.values(counts).reduce((s, x) => s + x, 0);
+              const total = activeTypes.reduce((s, t) => s + (counts[t] || 0), 0);
               const hasTypes = Object.entries(counts).filter(([, v]) => v > 0);
               return (
                 <div key={name} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -460,21 +465,21 @@ export default function ReportsPage() {
                       SLA Pipeline Aktif ({activePipeline} prospek)
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-green-50 border border-green-100 rounded-xl p-2.5 text-center">
-                        <CheckCircle2 size={14} className="text-green-500 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-green-700">{s.onTrack}</div>
-                        <div className="text-xs text-green-600">On Track</div>
-                      </div>
-                      <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-2.5 text-center">
-                        <AlertTriangle size={14} className="text-yellow-500 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-yellow-700">{s.atRisk}</div>
-                        <div className="text-xs text-yellow-600">At Risk</div>
-                      </div>
-                      <div className="bg-red-50 border border-red-100 rounded-xl p-2.5 text-center">
-                        <XCircle size={14} className="text-red-500 mx-auto mb-1" />
-                        <div className="text-lg font-bold text-red-700">{s.overdue}</div>
-                        <div className="text-xs text-red-600">Overdue</div>
-                      </div>
+                      {[
+                        { sla: "On Track", count: s.onTrack,  bg: "bg-green-50  hover:bg-green-100",  border: "border-green-100",  icon: CheckCircle2,  numCls: "text-green-700",  lblCls: "text-green-600"  },
+                        { sla: "At Risk",  count: s.atRisk,   bg: "bg-yellow-50 hover:bg-yellow-100", border: "border-yellow-100", icon: AlertTriangle, numCls: "text-yellow-700", lblCls: "text-yellow-600" },
+                        { sla: "Overdue",  count: s.overdue,  bg: "bg-red-50    hover:bg-red-100",    border: "border-red-100",    icon: XCircle,       numCls: "text-red-700",    lblCls: "text-red-600"    },
+                      ].map(({ sla, count, bg, border, icon: Icon, numCls, lblCls }) => (
+                        <Link
+                          key={sla}
+                          href={`/pipeline?sla=${encodeURIComponent(sla)}&sales=${encodeURIComponent(s.name)}`}
+                          className={`${bg} border ${border} rounded-xl p-2.5 text-center block transition-colors`}
+                        >
+                          <Icon size={14} className={`${lblCls} mx-auto mb-1`} />
+                          <div className={`text-lg font-bold ${numCls}`}>{count}</div>
+                          <div className={`text-xs ${lblCls}`}>{sla}</div>
+                        </Link>
+                      ))}
                     </div>
                   </div>
                   {activePipeline > 0 && (

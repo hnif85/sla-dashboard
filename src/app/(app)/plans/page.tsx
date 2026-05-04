@@ -69,7 +69,12 @@ const STATUS_LABEL: Record<string, string> = {
   done: "Selesai", cancelled: "Dibatalkan",
 };
 
-function toISO(d: Date) { return d.toISOString().split("T")[0]; }
+function toISO(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function getFilterBounds(period: string) {
   const now = new Date();
@@ -86,6 +91,86 @@ function getFilterBounds(period: string) {
     return { from: toISO(first), to: toISO(last) };
   }
   return { from: "", to: "" };
+}
+
+/* ─── Sales Recap ────────────────────────────────────────────── */
+function SalesRecap({ tasks }: { tasks: Task[] }) {
+  type Counts = { total: number; overdue: number; today: number; upcoming: number; done: number; cancelled: number };
+  const map: Record<string, Counts> = {};
+  for (const t of tasks) {
+    const name = t.sales.name;
+    if (!map[name]) map[name] = { total: 0, overdue: 0, today: 0, upcoming: 0, done: 0, cancelled: 0 };
+    const st = getTaskStatus(t) as keyof Counts;
+    map[name].total++;
+    map[name][st]++;
+  }
+  const entries = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+  if (entries.length === 0) return null;
+
+  const cols = [
+    { key: "overdue",  label: "Terlambat", numCls: "text-red-700",    bgCls: "bg-red-50"    },
+    { key: "today",    label: "Hari Ini",  numCls: "text-yellow-700", bgCls: "bg-yellow-50" },
+    { key: "upcoming", label: "Mendatang", numCls: "text-blue-700",   bgCls: "bg-blue-50"   },
+    { key: "done",     label: "Selesai",   numCls: "text-green-700",  bgCls: "bg-green-50"  },
+  ] as const;
+
+  // Totals row
+  const totals = entries.reduce(
+    (acc, [, s]) => { cols.forEach(({ key }) => { acc[key] += s[key]; }); acc.total += s.total; return acc; },
+    { overdue: 0, today: 0, upcoming: 0, done: 0, total: 0 }
+  );
+
+  return (
+    <div className="mb-4 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+        <CalendarDays size={15} className="text-yellow-500" />
+        <span className="text-sm font-semibold text-gray-700">Rekap per Sales</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="text-left px-4 py-2.5 text-gray-600 font-semibold">Sales</th>
+              {cols.map(({ key, label, bgCls }) => (
+                <th key={key} className={`text-center px-4 py-2.5 font-semibold text-gray-600`}>
+                  <span className={`${bgCls} px-2.5 py-0.5 rounded-full text-xs`}>{label}</span>
+                </th>
+              ))}
+              <th className="text-center px-4 py-2.5 text-gray-600 font-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map(([name, s]) => (
+              <tr key={name} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-2.5 font-medium text-gray-900">{name}</td>
+                {cols.map(({ key, numCls }) => (
+                  <td key={key} className="px-4 py-2.5 text-center">
+                    {s[key] > 0
+                      ? <span className={`font-bold ${numCls}`}>{s[key]}</span>
+                      : <span className="text-gray-300">—</span>}
+                  </td>
+                ))}
+                <td className="px-4 py-2.5 text-center font-bold text-gray-900">{s.total}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-gray-50 border-t border-gray-200">
+              <td className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</td>
+              {cols.map(({ key, numCls }) => (
+                <td key={key} className="px-4 py-2.5 text-center">
+                  {totals[key] > 0
+                    ? <span className={`font-bold ${numCls}`}>{totals[key]}</span>
+                    : <span className="text-gray-300">—</span>}
+                </td>
+              ))}
+              <td className="px-4 py-2.5 text-center font-bold text-gray-900">{totals.total}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 /* ─── Main Component ─────────────────────────────────────────── */
@@ -275,6 +360,9 @@ export default function PlansPage() {
           )}
         </div>
       </div>
+
+      {/* Rekap per Sales — admin only */}
+      {user?.role === "admin" && !loading && <SalesRecap tasks={filtered} />}
 
       {/* Content */}
       {loading ? (

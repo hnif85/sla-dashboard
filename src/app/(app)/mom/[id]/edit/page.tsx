@@ -31,13 +31,13 @@ export default function EditMOMPage({ params }: { params: Promise<{ id: string }
     fetch(`/api/mom/${id}`).then((r) => r.json()).then((data) => {
       setForm({
         title: data.title || "",
-        tanggal: data.tanggal ? new Date(data.tanggal).toISOString().split("T")[0] : "",
+        tanggal: data.tanggal ? (() => { const d = new Date(data.tanggal); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })() : "",
         participants: data.participants || "",
         agenda: data.agenda || "",
         discussion: data.discussion || "",
         decisions: data.decisions || "",
         actionItems: data.actionItems || "",
-        nextMeeting: data.nextMeeting ? new Date(data.nextMeeting).toISOString().split("T")[0] : "",
+        nextMeeting: data.nextMeeting ? (() => { const d = new Date(data.nextMeeting); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })() : "",
       });
       setLoading(false);
     });

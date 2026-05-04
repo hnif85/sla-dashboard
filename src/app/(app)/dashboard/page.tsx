@@ -290,7 +290,8 @@ export default function DashboardPage() {
     }
 
     async function loadTasks() {
-      const today = new Date().toISOString().split("T")[0];
+      const _d = new Date();
+      const today = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,"0")}-${String(_d.getDate()).padStart(2,"0")}`;
       try {
         const res = await fetch(`/api/tasks?status=planned&dateTo=${today}`);
         if (res.ok && !cancelled) setTasks(await res.json());
@@ -466,7 +467,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CalendarDays size={18} className="text-yellow-500" />
-            <h2 className="font-semibold text-gray-900">Rencana Hari Ini &amp; Terlambat</h2>
+            <h2 className="font-semibold text-gray-900">Rencana Hari Ini</h2>
           </div>
           <Link href="/plans" className="text-xs text-yellow-600 hover:text-yellow-700 font-medium">
             Lihat semua →

@@ -56,7 +56,7 @@ function MOMFormInner() {
   // Step 1 state
   const [rawNotes, setRawNotes] = useState("");
   const [selectedProspectId, setSelectedProspectId] = useState(defaultProspectId);
-  const [tanggal, setTanggal] = useState(new Date().toISOString().split("T")[0]);
+  const [tanggal, setTanggal] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
   const [participants, setParticipants] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");

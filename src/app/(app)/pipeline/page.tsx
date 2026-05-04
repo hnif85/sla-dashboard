@@ -87,10 +87,11 @@ function PipelineContent() {
   const [search, setSearch]       = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [filterSLA, setFilterSLA]     = useState(() => searchParams.get("sla") ?? "");
-  const [filterSales, setFilterSales] = useState("");
+  const [filterSales, setFilterSales] = useState(() => searchParams.get("sales") ?? "");
   const [showModal, setShowModal]     = useState(false);
   const [sortKey, setSortKey]   = useState<SortKey>("tglUpdateStage");
   const [sortDir, setSortDir]   = useState<SortDir>("desc");
+
 
   const load = () => {
     fetch("/api/pipeline")

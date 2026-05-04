@@ -599,9 +599,19 @@ export default function EventsPage() {
   const isTrainer = user?.role === "trainer";
 
   const load = useCallback(() => {
+    setLoading(true);
     fetch("/api/events")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          throw new Error(`Failed to load events (${r.status})`);
+        }
+        return r.json();
+      })
       .then((data) => { setEvents(Array.isArray(data) ? data : []); })
+      .catch((error) => {
+        console.error(error);
+        setEvents([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
