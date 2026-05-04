@@ -104,7 +104,11 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
                   <td className="px-4 py-3 text-gray-600">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${u.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      u.role === "admin" ? "bg-purple-100 text-purple-700" :
+                      u.role === "trainer" ? "bg-green-100 text-green-700" :
+                      "bg-blue-100 text-blue-700"
+                    }`}>
                       {u.role}
                     </span>
                   </td>
@@ -162,6 +166,7 @@ export default function AdminUsersPage() {
                   <select value={form.role} onChange={(e) => fc("role", e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400">
                     <option value="sales">Sales</option>
+                    <option value="trainer">Trainer</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

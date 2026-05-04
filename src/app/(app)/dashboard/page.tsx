@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { getCached, setCached } from "@/lib/fetch-cache";
 import { useAuth } from "@/contexts/AuthContext";
-import { TrendingUp, Target, Activity, AlertTriangle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
+import { TrendingUp, Target, Activity, AlertTriangle, CheckCircle2, Clock, CalendarDays, BarChart2, Users, ArrowRightLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 interface DashboardData {
@@ -24,6 +24,17 @@ interface DashboardData {
     sales: { name: string };
   }>;
   salesPerformance: Array<{ name: string; closed: number; pipeline: number; total: number }>;
+  weeklySummary: {
+    weekStart: string;
+    totalActivities: number;
+    newProspects: number;
+    stageChanges: number;
+    closedWon: number;
+    activitiesByType: Array<{ type: string; count: number }>;
+    activitiesBySales: Array<{ name: string; count: number }>;
+    recentClosedWon: Array<{ prospectName: string; salesName: string; changedAt: string }>;
+    recentNewProspects: Array<{ namaProspek: string; stage: string; salesName: string; createdAt: string }>;
+  } | null;
 }
 
 interface TaskItem {
@@ -52,6 +63,7 @@ function isDashboardData(value: unknown): value is DashboardData {
     typeof v.slaStatus === "object" &&
     Array.isArray(v.recentActivities) &&
     Array.isArray(v.salesPerformance)
+    // weeklySummary is optional (admin-only, may be null)
   );
 }
 
@@ -88,6 +100,151 @@ function getTaskBadge(task: TaskItem) {
   tanggal.setHours(0, 0, 0, 0);
   if (tanggal < today) return { label: "Terlambat", cls: "bg-red-100 text-red-700" };
   return { label: "Hari Ini", cls: "bg-yellow-100 text-yellow-700" };
+}
+
+type WeeklySummary = NonNullable<DashboardData["weeklySummary"]>;
+
+function WeeklySummaryWidget({ summary }: { summary: WeeklySummary }) {
+  const maxActivity = Math.max(1, ...summary.activitiesBySales.map((s) => s.count));
+  const maxType = Math.max(1, ...summary.activitiesByType.map((t) => t.count));
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-yellow-50 to-white">
+        <Sparkles size={18} className="text-yellow-500 shrink-0" />
+        <div className="flex-1">
+          <h2 className="font-semibold text-gray-900">Ringkasan 7 Hari Terakhir</h2>
+          <p className="text-xs text-gray-400">
+            Sejak {new Date(summary.weekStart).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+        </div>
+      </div>
+
+      {/* 4-stat row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+        {[
+          { label: "Aktivitas", value: summary.totalActivities, icon: Activity, color: "text-blue-500", bg: "bg-blue-50" },
+          { label: "Prospek Baru", value: summary.newProspects, icon: Users, color: "text-purple-500", bg: "bg-purple-50" },
+          { label: "Perubahan Stage", value: summary.stageChanges, icon: ArrowRightLeft, color: "text-orange-500", bg: "bg-orange-50" },
+          { label: "Closed Won", value: summary.closedWon, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50" },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="flex items-center gap-3 px-5 py-4">
+            <div className={`p-2 rounded-xl ${bg} shrink-0`}>
+              <Icon size={16} className={color} />
+            </div>
+            <div>
+              <div className="text-xl font-bold text-gray-900">{value}</div>
+              <div className="text-xs text-gray-400">{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+        {/* Activities by sales leaderboard */}
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 size={14} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Aktivitas per Sales</span>
+          </div>
+          {summary.activitiesBySales.length === 0 ? (
+            <div className="text-sm text-gray-400 py-4 text-center">Belum ada aktivitas minggu ini</div>
+          ) : (
+            <div className="space-y-2.5">
+              {summary.activitiesBySales.map((s, i) => (
+                <div key={s.name} className="flex items-center gap-3">
+                  <span className="w-5 text-xs font-bold text-gray-400 shrink-0 text-right">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-800 truncate">{s.name}</span>
+                      <span className="text-xs font-bold text-gray-700 ml-2 shrink-0">{s.count}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-yellow-400 transition-all"
+                        style={{ width: `${(s.count / maxActivity) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Activities by type */}
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 size={14} className="text-gray-400" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Aktivitas per Tipe</span>
+          </div>
+          {summary.activitiesByType.length === 0 ? (
+            <div className="text-sm text-gray-400 py-4 text-center">Belum ada aktivitas minggu ini</div>
+          ) : (
+            <div className="space-y-2.5">
+              {summary.activitiesByType.slice(0, 6).map((t) => (
+                <div key={t.type} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-800 truncate">{t.type}</span>
+                      <span className="text-xs font-bold text-gray-700 ml-2 shrink-0">{t.count}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-400 transition-all"
+                        style={{ width: `${(t.count / maxType) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Closed Won */}
+      {summary.recentClosedWon.length > 0 && (
+        <div className="px-5 py-4 border-t border-gray-100 bg-green-50/50">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 size={14} className="text-green-500" />
+            <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Deal Minggu Ini 🎉</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {summary.recentClosedWon.map((c, i) => (
+              <div key={i} className="flex items-center gap-2 bg-white border border-green-200 rounded-xl px-3 py-1.5 text-sm">
+                <CheckCircle2 size={12} className="text-green-500 shrink-0" />
+                <span className="font-medium text-gray-900">{c.prospectName}</span>
+                <span className="text-gray-400">·</span>
+                <span className="text-xs text-gray-500">{c.salesName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent new prospects */}
+      {summary.recentNewProspects.length > 0 && (
+        <div className="px-5 py-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Users size={14} className="text-purple-500" />
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Prospek Baru Minggu Ini</span>
+          </div>
+          <div className="space-y-2">
+            {summary.recentNewProspects.map((p, i) => (
+              <div key={i} className="flex items-center gap-3 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
+                <span className="font-medium text-gray-900 truncate flex-1">{p.namaProspek}</span>
+                <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full shrink-0">{p.stage}</span>
+                <span className="text-xs text-gray-400 shrink-0">{p.salesName}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -348,6 +505,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── Weekly Summary (admin only) ─────────────────────────────────────── */}
+      {user?.role === "admin" && data.weeklySummary && (
+        <WeeklySummaryWidget summary={data.weeklySummary} />
+      )}
     </div>
   );
 }

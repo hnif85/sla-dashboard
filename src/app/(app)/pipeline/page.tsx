@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Search, Eye, ChevronRight } from "lucide-react";
+import { Plus, Search, Eye, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import ProspectModal from "./ProspectModal";
 import { getCached, setCached, bustCachePrefix } from "@/lib/fetch-cache";
 
@@ -22,22 +23,74 @@ interface Prospect {
   sales: { id: string; name: string };
 }
 
+type SortKey = "namaProspek" | "sales" | "stage" | "estUmkmReach" | "probability" | "statusSLA" | "hariDiStage" | "tglUpdateStage";
+type SortDir = "asc" | "desc";
+
 const SLA_STYLES: Record<string, string> = {
   "On Track": "bg-green-100 text-green-700 border-green-200",
-  "At Risk": "bg-yellow-100 text-yellow-700 border-yellow-200",
-  "Overdue": "bg-red-100 text-red-700 border-red-200",
-  "Closed": "bg-gray-100 text-gray-500 border-gray-200",
+  "At Risk":  "bg-yellow-100 text-yellow-700 border-yellow-200",
+  "Overdue":  "bg-red-100 text-red-700 border-red-200",
+  "Closed":   "bg-gray-100 text-gray-500 border-gray-200",
 };
+
+const SLA_ORDER: Record<string, number> = { "Overdue": 0, "At Risk": 1, "On Track": 2, "Closed": 3 };
+
+function sortProspects(list: Prospect[], key: SortKey, dir: SortDir): Prospect[] {
+  return [...list].sort((a, b) => {
+    let cmp = 0;
+    if (key === "namaProspek") cmp = a.namaProspek.localeCompare(b.namaProspek, "id");
+    else if (key === "sales")   cmp = a.sales.name.localeCompare(b.sales.name, "id");
+    else if (key === "stage")   cmp = a.stage.localeCompare(b.stage, "id");
+    else if (key === "estUmkmReach")  cmp = (a.estUmkmReach ?? 0) - (b.estUmkmReach ?? 0);
+    else if (key === "probability")   cmp = (a.probability ?? 0) - (b.probability ?? 0);
+    else if (key === "statusSLA")     cmp = (SLA_ORDER[a.statusSLA] ?? 9) - (SLA_ORDER[b.statusSLA] ?? 9);
+    else if (key === "hariDiStage")   cmp = a.hariDiStage - b.hariDiStage;
+    else if (key === "tglUpdateStage") cmp = new Date(a.tglUpdateStage).getTime() - new Date(b.tglUpdateStage).getTime();
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
+/* ── Sortable header cell ── */
+function Th({ label, sortKey, current, dir, onSort, className = "" }: {
+  label: string;
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onSort: (k: SortKey) => void;
+  className?: string;
+}) {
+  const active = current === sortKey;
+  return (
+    <th
+      className={`px-4 py-3 text-left select-none cursor-pointer group ${className}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        <span className={`text-sm font-semibold ${active ? "text-yellow-600" : "text-gray-600 group-hover:text-gray-800"}`}>
+          {label}
+        </span>
+        <span className={`transition-colors ${active ? "text-yellow-500" : "text-gray-300 group-hover:text-gray-400"}`}>
+          {active
+            ? (dir === "asc" ? <ChevronUp size={13} /> : <ChevronDown size={13} />)
+            : <ChevronsUpDown size={13} />}
+        </span>
+      </div>
+    </th>
+  );
+}
 
 export default function PipelinePage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [prospects, setProspects] = useState<Prospect[]>(() => getCached<Prospect[]>("/api/pipeline") ?? []);
-  const [loading, setLoading] = useState(() => getCached<Prospect[]>("/api/pipeline") === null);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading]     = useState(() => getCached<Prospect[]>("/api/pipeline") === null);
+  const [search, setSearch]       = useState("");
   const [filterStage, setFilterStage] = useState("");
-  const [filterSLA, setFilterSLA] = useState("");
+  const [filterSLA, setFilterSLA]     = useState(() => searchParams.get("sla") ?? "");
   const [filterSales, setFilterSales] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal]     = useState(false);
+  const [sortKey, setSortKey]   = useState<SortKey>("tglUpdateStage");
+  const [sortDir, setSortDir]   = useState<SortDir>("desc");
 
   const load = () => {
     fetch("/api/pipeline")
@@ -47,23 +100,32 @@ export default function PipelinePage() {
   };
 
   useEffect(() => {
-    // Always refresh in background even if we have cached data
     const stale = getCached<Prospect[]>("/api/pipeline");
     if (stale) setLoading(false);
     load();
   }, []);
 
-  const filtered = prospects.filter((p) => {
-    const matchSearch = !search || p.namaProspek.toLowerCase().includes(search.toLowerCase()) ||
-      p.channel?.toLowerCase().includes(search.toLowerCase());
-    const matchStage = !filterStage || p.stage === filterStage;
-    const matchSLA = !filterSLA || p.statusSLA === filterSLA;
-    const matchSales = !filterSales || p.sales.name === filterSales;
-    return matchSearch && matchStage && matchSLA && matchSales;
-  });
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
 
-  const stages = [...new Set(prospects.map((p) => p.stage))].sort();
+  const filtered = useMemo(() => {
+    const base = prospects.filter((p) => {
+      const matchSearch = !search || p.namaProspek.toLowerCase().includes(search.toLowerCase()) ||
+        p.channel?.toLowerCase().includes(search.toLowerCase());
+      const matchStage = !filterStage || p.stage === filterStage;
+      const matchSLA   = !filterSLA   || p.statusSLA === filterSLA;
+      const matchSales = !filterSales || p.sales.name === filterSales;
+      return matchSearch && matchStage && matchSLA && matchSales;
+    });
+    return sortProspects(base, sortKey, sortDir);
+  }, [prospects, search, filterStage, filterSLA, filterSales, sortKey, sortDir]);
+
+  const stages    = [...new Set(prospects.map((p) => p.stage))].sort();
   const salesList = [...new Set(prospects.map((p) => p.sales.name))].sort();
+
+  const thProps = { current: sortKey, dir: sortDir, onSort: handleSort };
 
   return (
     <div className="p-4 md:p-6">
@@ -96,28 +158,19 @@ export default function PipelinePage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          <select
-            value={filterStage}
-            onChange={(e) => setFilterStage(e.target.value)}
-            className="flex-1 min-w-[120px] text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
-          >
+          <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)}
+            className="flex-1 min-w-[120px] text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white">
             <option value="">Semua Stage</option>
             {stages.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select
-            value={filterSLA}
-            onChange={(e) => setFilterSLA(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
-          >
+          <select value={filterSLA} onChange={(e) => setFilterSLA(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white">
             <option value="">Semua SLA</option>
             {["On Track", "At Risk", "Overdue"].map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           {user?.role === "admin" && (
-            <select
-              value={filterSales}
-              onChange={(e) => setFilterSales(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white"
-            >
+            <select value={filterSales} onChange={(e) => setFilterSales(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 outline-none text-gray-900 bg-white">
               <option value="">Semua Sales</option>
               {salesList.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -136,13 +189,14 @@ export default function PipelinePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Sales</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Est. UMKM</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prob.</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">SLA</th>
-                  <th className="text-left px-4 py-3 text-gray-600 font-semibold">Hari</th>
+                  <Th label="Prospek"      sortKey="namaProspek"    {...thProps} />
+                  <Th label="Sales"        sortKey="sales"          {...thProps} />
+                  <Th label="Stage"        sortKey="stage"          {...thProps} />
+                  <Th label="Est. UMKM"   sortKey="estUmkmReach"   {...thProps} />
+                  <Th label="Prob."        sortKey="probability"    {...thProps} />
+                  <Th label="SLA"          sortKey="statusSLA"      {...thProps} />
+                  <Th label="Hari"         sortKey="hariDiStage"    {...thProps} />
+                  <Th label="Update Stage" sortKey="tglUpdateStage" {...thProps} className="whitespace-nowrap" />
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -163,6 +217,9 @@ export default function PipelinePage() {
                       <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${SLA_STYLES[p.statusSLA] || SLA_STYLES["Closed"]}`}>{p.statusSLA}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{p.hariDiStage}h</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap text-xs">
+                      {new Date(p.tglUpdateStage).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
                     <td className="px-4 py-3">
                       <Link href={`/pipeline/${p.id}`} className="flex items-center gap-1 text-yellow-600 hover:text-yellow-700 font-medium text-xs">
                         <Eye size={14} /> Detail <ChevronRight size={12} />
@@ -171,7 +228,7 @@ export default function PipelinePage() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="text-center py-12 text-gray-400">Tidak ada prospek ditemukan</td></tr>
+                  <tr><td colSpan={9} className="text-center py-12 text-gray-400">Tidak ada prospek ditemukan</td></tr>
                 )}
               </tbody>
             </table>
@@ -198,7 +255,7 @@ export default function PipelinePage() {
                 <div className="flex items-center gap-1 mb-3">
                   <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium truncate">{p.stage}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="grid grid-cols-2 gap-2 text-center">
                   <div className="bg-gray-50 rounded-lg py-1.5">
                     <div className="text-xs text-gray-400">Est. UMKM</div>
                     <div className="text-sm font-bold text-gray-800">{p.estUmkmReach?.toLocaleString("id-ID") || "—"}</div>
@@ -210,6 +267,12 @@ export default function PipelinePage() {
                   <div className="bg-gray-50 rounded-lg py-1.5">
                     <div className="text-xs text-gray-400">Hari di Stage</div>
                     <div className="text-sm font-bold text-gray-800">{p.hariDiStage} hari</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg py-1.5">
+                    <div className="text-xs text-gray-400">Update Stage</div>
+                    <div className="text-xs font-semibold text-gray-700 mt-0.5">
+                      {new Date(p.tglUpdateStage).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "2-digit" })}
+                    </div>
                   </div>
                 </div>
               </Link>

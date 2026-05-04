@@ -4,16 +4,18 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Target, Activity, FileText, Settings,
-  Users, Sliders, LogOut, ChevronRight, TrendingUp, CalendarDays,
+  Users, Sliders, LogOut, ChevronRight, TrendingUp, CalendarDays, ClipboardList, Megaphone,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "sales"] },
-  { href: "/pipeline", label: "Pipeline", icon: Target, roles: ["admin", "sales"] },
-  { href: "/activities", label: "Activity Log", icon: Activity, roles: ["admin", "sales"] },
-  { href: "/plans", label: "Rencana", icon: CalendarDays, roles: ["admin", "sales"] },
-  { href: "/mom", label: "Minutes of Meeting", icon: FileText, roles: ["admin", "sales"] },
-  { href: "/reports", label: "Laporan", icon: TrendingUp, roles: ["admin", "sales"] },
+  { href: "/dashboard",  label: "Dashboard",          icon: LayoutDashboard, roles: ["admin", "sales"] },
+  { href: "/pipeline",   label: "Pipeline",            icon: Target,          roles: ["admin", "sales"] },
+  { href: "/activities", label: "Activity Log",        icon: Activity,        roles: ["admin", "sales"] },
+  { href: "/plans",      label: "Rencana",             icon: CalendarDays,    roles: ["admin", "sales"] },
+  { href: "/mom",        label: "Minutes of Meeting",  icon: FileText,        roles: ["admin", "sales"] },
+  { href: "/events",     label: "Events",              icon: Megaphone,       roles: ["admin", "sales", "trainer"] },
+  { href: "/reports",    label: "Laporan",             icon: TrendingUp,      roles: ["admin", "sales"] },
+  { href: "/wip",        label: "WIP Report",          icon: ClipboardList,   roles: ["admin", "sales"] },
 ];
 
 const adminItems = [
@@ -27,7 +29,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col min-h-screen">
+    <aside className="w-64 bg-gray-900 text-white flex flex-col h-full">
       <div className="p-5 border-b border-gray-700">
         <div className="text-lg font-bold text-yellow-400">MWX Partnership</div>
         <div className="text-xs text-gray-400 mt-0.5">SLA Dashboard</div>

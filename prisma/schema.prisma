@@ -17,11 +17,13 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  prospects   Prospect[]
-  activities  Activity[]
-  moms        MOM[]
-  historyLogs PipelineHistory[]
-  tasks       Task[]
+  prospects     Prospect[]
+  activities    Activity[]
+  moms          MOM[]
+  historyLogs   PipelineHistory[]
+  tasks         Task[]
+  events        Event[]
+  trainerEvents EventTrainer[]
 }
 
 model FunnelStage {
@@ -65,6 +67,7 @@ model Prospect {
   activities Activity[]
   moms       MOM[]
   tasks      Task[]
+  events     Event[]
 }
 
 model PipelineHistory {
@@ -144,4 +147,35 @@ model Config {
   label       String
   description String?
   category    String @default("general")
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  namaEvent      String
+  tanggal        DateTime
+  lokasiType     String   @default("online") // "online" | "offline"
+  lokasiDetail   String?
+  salesId        String
+  prospectId     String?
+  target         String?
+  jumlahPeserta  Int?
+  jumlahAplikasi Int?
+  resume         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sales    User           @relation(fields: [salesId], references: [id])
+  prospect Prospect?      @relation(fields: [prospectId], references: [id])
+  trainers EventTrainer[]
+}
+
+model EventTrainer {
+  id        String  @id @default(cuid())
+  eventId   String
+  trainerId String
+  topik     String?
+  order     Int     @default(0)
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  trainer User  @relation(fields: [trainerId], references: [id])
 }

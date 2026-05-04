@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
   TrendingUp, Award, Target, CheckCircle2, AlertTriangle,
   XCircle, Users, Activity, ChevronLeft, ChevronRight, Calendar,
@@ -361,15 +362,19 @@ export default function ReportsPage() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { key: "On Track", color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
-              { key: "At Risk",  color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: AlertTriangle },
-              { key: "Overdue", color: "bg-red-100 text-red-700 border-red-200", icon: XCircle },
+              { key: "On Track", color: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200", icon: CheckCircle2 },
+              { key: "At Risk",  color: "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200", icon: AlertTriangle },
+              { key: "Overdue", color: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200", icon: XCircle },
             ].map(({ key, color, icon: Icon }) => (
-              <div key={key} className={`rounded-xl border p-4 text-center ${color}`}>
+              <Link
+                key={key}
+                href={`/pipeline?sla=${encodeURIComponent(key)}`}
+                className={`rounded-xl border p-4 text-center transition-colors cursor-pointer block ${color}`}
+              >
                 <Icon size={18} className="mx-auto mb-1 opacity-70" />
                 <div className="text-2xl font-bold">{data.slaStatus[key] || 0}</div>
                 <div className="text-xs font-medium mt-0.5">{key}</div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
