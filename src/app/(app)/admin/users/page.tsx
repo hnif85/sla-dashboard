@@ -107,6 +107,7 @@ export default function AdminUsersPage() {
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                       u.role === "admin" ? "bg-purple-100 text-purple-700" :
                       u.role === "trainer" ? "bg-green-100 text-green-700" :
+                      u.role === "crm" ? "bg-amber-100 text-amber-700" :
                       "bg-blue-100 text-blue-700"
                     }`}>
                       {u.role}
@@ -167,6 +168,7 @@ export default function AdminUsersPage() {
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400">
                     <option value="sales">Sales</option>
                     <option value="trainer">Trainer</option>
+                    <option value="crm">CRM</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

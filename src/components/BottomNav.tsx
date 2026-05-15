@@ -2,15 +2,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Target, Activity, FileText, TrendingUp, Settings, CalendarDays, ClipboardList, Megaphone } from "lucide-react";
+import { LayoutDashboard, Target, Activity, FileText, TrendingUp, Settings, ClipboardList, Megaphone, Briefcase } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard",  label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "sales"] },
+  { href: "/dashboard",  label: "Dashboard", icon: LayoutDashboard, roles: ["admin"] },
   { href: "/pipeline",   label: "Pipeline",   icon: Target,          roles: ["admin", "sales"] },
+  { href: "/crm",        label: "CRM",        icon: Briefcase,       roles: ["admin", "crm"] },
   { href: "/activities", label: "Aktivitas",  icon: Activity,        roles: ["admin", "sales"] },
   { href: "/mom",        label: "MOM",        icon: FileText,        roles: ["admin", "sales"] },
-  { href: "/events",     label: "Events",     icon: Megaphone,       roles: ["admin", "sales", "trainer"] },
-  { href: "/reports",    label: "Laporan",    icon: TrendingUp,      roles: ["admin", "sales"] },
+  { href: "/events",     label: "Events",     icon: Megaphone,       roles: ["admin", "trainer"] },
+  { href: "/reports",    label: "Laporan",    icon: TrendingUp,      roles: ["admin", "sales", "crm"] },
   { href: "/wip",        label: "WIP",        icon: ClipboardList,   roles: ["admin", "sales"] },
   { href: "/admin/users",label: "Admin",      icon: Settings,        roles: ["admin"] },
 ];

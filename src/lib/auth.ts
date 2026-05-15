@@ -9,7 +9,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   name: string;
-  role: "admin" | "sales" | "trainer";
+  role: "admin" | "sales" | "trainer" | "crm";
 }
 
 export function signToken(payload: JWTPayload): string {

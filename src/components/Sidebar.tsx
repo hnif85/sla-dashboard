@@ -5,17 +5,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, Target, Activity, FileText, Settings,
   Users, Sliders, LogOut, ChevronRight, TrendingUp, CalendarDays,
-  ClipboardList, Megaphone, PanelLeftClose, PanelLeftOpen,
+  ClipboardList, Megaphone, PanelLeftClose, PanelLeftOpen, UsersRound, BarChart3, Briefcase,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard",  label: "Dashboard",         icon: LayoutDashboard, roles: ["admin", "sales"] },
+  { href: "/dashboard",  label: "Dashboard",         icon: LayoutDashboard, roles: ["admin"] },
   { href: "/pipeline",   label: "Pipeline",           icon: Target,          roles: ["admin", "sales"] },
+  { href: "/crm",        label: "CRM",                icon: Briefcase,       roles: ["admin", "crm"] },
   { href: "/activities", label: "Activity Log",       icon: Activity,        roles: ["admin", "sales"] },
   { href: "/plans",      label: "Rencana",            icon: CalendarDays,    roles: ["admin", "sales"] },
   { href: "/mom",        label: "Minutes of Meeting", icon: FileText,        roles: ["admin", "sales"] },
-  { href: "/events",     label: "Events",             icon: Megaphone,       roles: ["admin", "sales", "trainer"] },
-  { href: "/reports",    label: "Laporan",            icon: TrendingUp,      roles: ["admin", "sales"] },
+  { href: "/reports",    label: "Laporan",            icon: TrendingUp,      roles: ["admin", "sales", "crm"] },
   { href: "/wip",        label: "WIP Report",         icon: ClipboardList,   roles: ["admin", "sales"] },
 ];
 
@@ -96,6 +96,17 @@ export default function Sidebar({
         {navItems
           .filter((item) => item.roles.includes(user?.role || "sales"))
           .map((item) => navLink(item.href, item.label, item.icon, pathname.startsWith(item.href)))}
+
+        {(user?.role === "admin" || user?.role === "trainer") && (
+          <div className={collapsed ? "mt-2" : "mt-3"}>
+            {!collapsed && (
+              <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1 px-2">Events</div>
+            )}
+            {navLink("/events", "Event Dashboard", Megaphone, pathname.startsWith("/events"))}
+            {navLink("/events/peserta", "List Peserta", UsersRound, pathname.startsWith("/events/peserta"))}
+            {navLink("/events/monitoring", "Monitoring Penggunaan", BarChart3, pathname.startsWith("/events/monitoring"))}
+          </div>
+        )}
       </div>
 
       {/* Admin items */}

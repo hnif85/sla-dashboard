@@ -3,7 +3,7 @@ import prisma from "@/lib/db";
 import { getCachedFunnelStages, getCachedConfig } from "@/lib/server-cache";
 import { getSessionFromRequest } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
-import { subDays, startOfDay } from "date-fns";
+import { subDays, startOfDay, differenceInDays } from "date-fns";
 
 function isDatabaseUnreachable(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) return error.code === "P1001";
@@ -34,6 +34,11 @@ export async function GET(req: NextRequest) {
           weightedUmkm: true,
           salesId: true,
           sales: { select: { name: true } },
+          activities: {
+            select: { tanggal: true },
+            orderBy: { tanggal: "desc" },
+            take: 1,
+          },
         },
       }),
       prisma.activity.findMany({
@@ -56,9 +61,9 @@ export async function GET(req: NextRequest) {
 
     const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
 
-    const computeSLA = (stage: string, tglUpdate: Date) => {
+    const computeSLA = (stage: string, effectiveDate: Date) => {
       if (stage.includes("Closed")) return "Closed";
-      const days = Math.floor((Date.now() - tglUpdate.getTime()) / 86400000);
+      const days = differenceInDays(new Date(), effectiveDate);
       const slaMax = stageMap[stage]?.slaMax ?? 7;
       if (days <= slaMax * 0.5) return "On Track";
       if (days <= slaMax) return "At Risk";
@@ -83,7 +88,14 @@ export async function GET(req: NextRequest) {
     }> = {};
 
     for (const p of prospects) {
-      const sl = computeSLA(p.stage, new Date(p.tglUpdateStage));
+      const acts = (p as { activities?: { tanggal: Date }[] }).activities;
+      const lastActivity = acts?.[0]?.tanggal;
+      const effectiveDate =
+        lastActivity && new Date(lastActivity) > new Date(p.tglUpdateStage)
+          ? new Date(lastActivity)
+          : new Date(p.tglUpdateStage);
+
+      const sl = computeSLA(p.stage, effectiveDate);
       const name = p.sales.name;
       stageCount[p.stage] = (stageCount[p.stage] || 0) + 1;
 
