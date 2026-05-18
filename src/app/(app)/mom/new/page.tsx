@@ -58,6 +58,7 @@ function MOMFormInner() {
   const [selectedProspectId, setSelectedProspectId] = useState(defaultProspectId);
   const [tanggal, setTanggal] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
   const [participants, setParticipants] = useState("");
+  const [title, setTitle] = useState("");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
 
@@ -101,6 +102,30 @@ function MOMFormInner() {
     const { draft: aiDraft } = resData;
     setDraft(aiDraft);
     setStep("review");
+  };
+
+  const handleSaveDirect = async () => {
+    if (!title.trim()) { setGenError("Judul MOM wajib diisi"); return; }
+    setSaving(true);
+    setGenError("");
+    try {
+      const res = await fetch("/api/mom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          tanggal,
+          prospectId: selectedProspectId || null,
+          participants: participants.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan MOM");
+      const data = await res.json();
+      router.push(`/mom/${data.id}`);
+    } catch (err: unknown) {
+      setGenError(err instanceof Error ? err.message : "Terjadi error");
+      setSaving(false);
+    }
   };
 
   const updateDraftMom = (key: string, val: string) =>
@@ -207,6 +232,35 @@ function MOMFormInner() {
     }
   };
 
+  const handleSaveMOMOnly = async () => {
+    if (!draft) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/mom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draft.mom.title,
+          tanggal,
+          prospectId: selectedProspectId || null,
+          participants,
+          agenda: draft.mom.agenda,
+          discussion: draft.mom.discussion,
+          decisions: draft.mom.decisions,
+          actionItems: draft.mom.actionItems,
+          nextMeeting: draft.mom.nextMeeting || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Gagal menyimpan MOM");
+      const data = await res.json();
+      router.push(`/mom/${data.id}`);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Terjadi error");
+      setSaving(false);
+    }
+  };
+
   // ─── Step 1: Input ───────────────────────────────────────────────
   if (step === "input") {
     return (
@@ -267,10 +321,23 @@ function MOMFormInner() {
             </div>
           </div>
 
+          {/* Direct save: title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Judul MOM <span className="text-gray-400 text-xs font-normal">(untuk simpan langsung)</span>
+            </label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400 text-gray-900 bg-white"
+              placeholder="Meeting dengan SMESCO — 22 April 2026"
+            />
+          </div>
+
           {/* Raw Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Catatan Meeting Mentah <span className="text-red-500">*</span>
+              Catatan Meeting Mentah <span className="text-gray-400 text-xs font-normal">(untuk generate AI)</span>
             </label>
             <textarea
               value={rawNotes}
@@ -292,6 +359,17 @@ function MOMFormInner() {
             <Link href="/mom" className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 text-center">
               Batal
             </Link>
+            <button
+              onClick={handleSaveDirect}
+              disabled={saving || !title.trim()}
+              className="flex-1 py-3 border-2 border-yellow-400 text-yellow-700 hover:bg-yellow-50 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {saving ? (
+                <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
+              ) : (
+                <>Simpan Langsung</>
+              )}
+            </button>
             <button
               onClick={handleGenerate}
               disabled={generating || !rawNotes.trim()}
@@ -553,6 +631,10 @@ function MOMFormInner() {
             <button onClick={() => setStep("input")}
               className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
               Kembali Edit
+            </button>
+            <button onClick={handleSaveMOMOnly} disabled={saving}
+              className="py-3 px-4 border-2 border-yellow-400 text-yellow-700 hover:bg-yellow-50 rounded-xl text-sm font-semibold disabled:opacity-60">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : "Simpan MOM Saja"}
             </button>
             <button onClick={handleSave} disabled={saving}
               className="flex-2 w-full py-3 bg-yellow-400 hover:bg-yellow-500 disabled:opacity-60 text-gray-900 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">

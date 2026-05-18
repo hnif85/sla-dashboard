@@ -192,7 +192,7 @@ function PipelineContent() {
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <Th label="Prospek"      sortKey="namaProspek"    {...thProps} />
                   <Th label="Sales"        sortKey="sales"          {...thProps} />
-                  <Th label="Stage"        sortKey="stage"          {...thProps} />
+                  <Th label="Next Stage"   sortKey="stage"          {...thProps} />
                   <Th label="Est. UMKM"   sortKey="estUmkmReach"   {...thProps} />
                   <Th label="Prob."        sortKey="probability"    {...thProps} />
                   <Th label="SLA"          sortKey="statusSLA"      {...thProps} />
