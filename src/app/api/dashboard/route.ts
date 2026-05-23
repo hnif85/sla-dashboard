@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
     const stageCount: Record<string, number> = {};
     const slaStatus: Record<string, number> = {};
     const salesPerf: Record<string, {
-      name: string; closed: number; pipeline: number; total: number;
+      id: string; name: string; closed: number; pipeline: number; total: number;
       onTrack: number; atRisk: number; overdue: number;
     }> = {};
 
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
       const name = p.sales.name;
       stageCount[p.stage] = (stageCount[p.stage] || 0) + 1;
 
-      if (!salesPerf[name]) salesPerf[name] = { name, closed: 0, pipeline: 0, total: 0, onTrack: 0, atRisk: 0, overdue: 0 };
+      if (!salesPerf[name]) salesPerf[name] = { id: p.salesId, name, closed: 0, pipeline: 0, total: 0, onTrack: 0, atRisk: 0, overdue: 0 };
       salesPerf[name].total += 1;
 
       if (isClosedWon(p.stage)) {

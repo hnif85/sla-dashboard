@@ -17,13 +17,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  prospects     Prospect[]
-  activities    Activity[]
-  moms          MOM[]
-  historyLogs   PipelineHistory[]
-  tasks         Task[]
-  events        Event[]
-  trainerEvents EventTrainer[]
+  prospects        Prospect[]
+  activities       Activity[]
+  moms             MOM[]
+  historyLogs      PipelineHistory[]
+  tasks            Task[]
+  events           Event[]
+  trainerEvents    EventTrainer[]
+  summariesGenerated ProspectSummaryCache[]
 }
 
 model FunnelStage {
@@ -68,6 +69,7 @@ model Prospect {
   moms       MOM[]
   tasks      Task[]
   events     Event[]
+  summaryCache ProspectSummaryCache?
 }
 
 model PipelineHistory {
@@ -178,4 +180,18 @@ model EventTrainer {
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   trainer User  @relation(fields: [trainerId], references: [id])
+}
+
+model ProspectSummaryCache {
+  id               String   @id @default(cuid())
+  prospectId       String   @unique
+  summary          String
+  dataHash         String
+  activitiesCount  Int
+  momsCount        Int
+  generatedAt      DateTime @default(now())
+  generatedById    String
+
+  prospect    Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  generatedBy User     @relation(fields: [generatedById], references: [id])
 }

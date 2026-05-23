@@ -8,6 +8,7 @@ import {
 
 /* ─── Types ────────────────────────────────────────────────── */
 interface SalesPerf {
+  id: string;
   name: string;
   closed: number;
   pipeline: number;
@@ -495,6 +496,12 @@ export default function ReportsPage() {
                       </div>
                     </div>
                   )}
+                  <Link
+                    href={`/reports/${s.id}`}
+                    className="flex items-center justify-center gap-1.5 w-full py-2 mt-1 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-100"
+                  >
+                    Lihat Laporan Detail →
+                  </Link>
                 </div>
               </div>
             );
