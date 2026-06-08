@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Plus, X, Search, ExternalLink, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, X, Search, ExternalLink, Trash2, Edit2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +15,7 @@ interface Activity {
   nextStage: string;
   catatan: string;
   linkMOM: string;
-  sales: { name: string };
+  sales: { id: string; name: string };
   prospect?: { id: string; namaProspek: string };
 }
 
@@ -29,7 +29,6 @@ interface Prospect {
 
 const ACTIVITY_TYPES = [
   "Email",
-  "WA/Call",
   "Meeting Online",
   "Meeting Offline",
   "Presentasi",
@@ -42,7 +41,7 @@ const ACTIVITY_TYPES = [
 const STAGES = [
   "1. Lead/Prospek",
   "2. Outreach (Email/WA)",
-  "3. Follow Up / Kit",
+  "3. Follow Up",
   "4. Meeting Discovery",
   "5. Demo/Presentasi",
   "6. Proposal Formal",
@@ -85,6 +84,7 @@ export default function ActivitiesClient() {
   const [search, setSearch] = useState("");
   const [filterTipe, setFilterTipe] = useState("");
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 15;
@@ -121,6 +121,28 @@ export default function ActivitiesClient() {
     e.preventDefault();
     setSaving(true);
 
+    if (editingActivity) {
+      await fetch(`/api/activities/${editingActivity.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipeAktivitas: form.tipeAktivitas,
+          tanggal: form.tanggal,
+          pic: form.pic,
+          topikHasil: form.topikHasil,
+          nextStage: form.nextStage,
+          catatan: form.catatan,
+          linkMOM: form.linkMOM,
+        }),
+      });
+      setSaving(false);
+      setShowModal(false);
+      setEditingActivity(null);
+      setForm(EMPTY_FORM);
+      fetchActivities(prospectIdFromQuery || undefined);
+      return;
+    }
+
     const effectiveProspectId = form.prospectId || prospectIdFromQuery;
     const selected = prospects.find((p) => p.id === effectiveProspectId);
     await fetch("/api/activities", {
@@ -150,6 +172,24 @@ export default function ActivitiesClient() {
     setDismissedProspectId(prospectIdFromQuery);
     setForm(prospectIdFromQuery ? { ...EMPTY_FORM, prospectId: prospectIdFromQuery } : EMPTY_FORM);
     fetchActivities(prospectIdFromQuery || undefined);
+  };
+
+  const handleEditActivity = (e: React.MouseEvent, activity: Activity) => {
+    e.stopPropagation();
+    setEditingActivity(activity);
+    setForm({
+      ...EMPTY_FORM,
+      tipeAktivitas: activity.tipeAktivitas,
+      tanggal: activity.tanggal.split("T")[0],
+      pic: activity.pic || "",
+      topikHasil: activity.topikHasil || "",
+      nextStage: activity.nextStage || "",
+      catatan: activity.catatan || "",
+      linkMOM: activity.linkMOM || "",
+      prospectId: activity.prospect?.id || "",
+    });
+    setShowModal(true);
+    setDismissedProspectId("");
   };
 
   const handleDeleteActivity = async (e: React.MouseEvent, id: string) => {
@@ -195,6 +235,7 @@ export default function ActivitiesClient() {
         </div>
         <button
           onClick={() => {
+            setEditingActivity(null);
             setForm(EMPTY_FORM);
             setShowModal(true);
             setDismissedProspectId("");
@@ -252,7 +293,7 @@ export default function ActivitiesClient() {
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Prospek</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Topik / Hasil</th>
                   <th className="text-left px-4 py-3 text-gray-600 font-semibold">Next Stage</th>
-                  {user?.role === "admin" && <th className="px-4 py-3" />}
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -274,8 +315,17 @@ export default function ActivitiesClient() {
                     <td className="px-4 py-3 text-gray-600">
                       <span className="text-xs">{a.nextStage || "-"}</span>
                     </td>
-                    {user?.role === "admin" && (
-                      <td className="px-3 py-3 text-right">
+                    <td className="px-3 py-3 text-right">
+                      {(user?.role === "admin" || a.sales.id === user?.userId) && (
+                        <button
+                          onClick={(e) => handleEditActivity(e, a)}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Edit Aktivitas"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      )}
+                      {user?.role === "admin" && (
                         <button
                           onClick={(e) => handleDeleteActivity(e, a.id)}
                           disabled={deletingId === a.id}
@@ -284,12 +334,12 @@ export default function ActivitiesClient() {
                         >
                           <Trash2 size={13} />
                         </button>
-                      </td>
-                    )}
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={user?.role === "admin" ? 7 : 6} className="text-center py-12 text-gray-400">
+                  <tr><td colSpan={7} className="text-center py-12 text-gray-400">
                     {search || filterTipe ? "Tidak ada aktivitas yang cocok" : "Belum ada aktivitas"}
                   </td></tr>
                 )}
@@ -321,6 +371,15 @@ export default function ActivitiesClient() {
                 {a.topikHasil && <p className="text-sm text-gray-600 leading-relaxed mb-2 line-clamp-2">{a.topikHasil}</p>}
                 {a.nextStage && (
                   <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">{a.nextStage}</span>
+                )}
+                {(user?.role === "admin" || a.sales.id === user?.userId) && (
+                  <button
+                    onClick={(e) => handleEditActivity(e, a)}
+                    className="absolute top-3 right-10 p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Edit Aktivitas"
+                  >
+                    <Edit2 size={13} />
+                  </button>
                 )}
                 {user?.role === "admin" && (
                   <button
@@ -501,6 +560,18 @@ export default function ActivitiesClient() {
             </div>
 
             <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex gap-2">
+              {(user?.role === "admin" || selectedActivity.sales.id === user?.userId) && (
+                <button
+                  onClick={(e) => {
+                    handleEditActivity(e, selectedActivity);
+                    setSelectedActivity(null);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-xl font-medium transition-colors"
+                >
+                  <Edit2 size={13} />
+                  Edit
+                </button>
+              )}
               {user?.role === "admin" && (
                 <button
                   onClick={(e) => handleDeleteActivity(e, selectedActivity.id)}
@@ -526,11 +597,13 @@ export default function ActivitiesClient() {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div className="font-semibold text-gray-900">Catat Aktivitas</div>
+              <div className="font-semibold text-gray-900">{editingActivity ? "Edit Aktivitas" : "Catat Aktivitas"}</div>
               <button
                 onClick={() => {
                   setShowModal(false);
+                  setEditingActivity(null);
                   setDismissedProspectId(prospectIdFromQuery);
+                  setForm(EMPTY_FORM);
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -570,24 +643,32 @@ export default function ActivitiesClient() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prospek *</label>
-                  <select
-                    required
-                    value={effectiveProspectId}
-                    onChange={(e) => handleProspectChange(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
-                  >
-                    <option value="">â€” Pilih Prospek â€”</option>
-                    {prospects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.namaProspek} Â· {p.sales.name}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedProspect && (
-                    <div className="mt-1.5 flex items-center gap-2 text-xs text-gray-500">
-                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{selectedProspect.stage}</span>
-                      <span>Sales: {selectedProspect.sales.name}</span>
+                  {editingActivity ? (
+                    <div className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-gray-50">
+                      {editingActivity.prospect?.namaProspek || editingActivity.namaProspek || "-"}
                     </div>
+                  ) : (
+                    <>
+                      <select
+                        required
+                        value={effectiveProspectId}
+                        onChange={(e) => handleProspectChange(e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                      >
+                        <option value="">— Pilih Prospek —</option>
+                        {prospects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.namaProspek} · {p.sales.name}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedProspect && (
+                        <div className="mt-1.5 flex items-center gap-2 text-xs text-gray-500">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{selectedProspect.stage}</span>
+                          <span>Sales: {selectedProspect.sales.name}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -639,7 +720,7 @@ export default function ActivitiesClient() {
                   />
                 </div>
 
-                {!form.createMom && (
+                {(!form.createMom || editingActivity) && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Link MOM</label>
                     <input
@@ -651,35 +732,37 @@ export default function ActivitiesClient() {
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-gray-100">
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={!!form.createMom}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setForm((f) => {
-                          if (!checked) return { ...f, createMom: false };
-                          const autoTitle =
-                            f.momTitle ||
-                            (selectedProspect
-                              ? `MOM - ${selectedProspect.namaProspek}`
-                              : f.tipeAktivitas
-                                ? `MOM - ${f.tipeAktivitas}`
-                                : "MOM");
-                          return { ...f, createMom: true, momTitle: autoTitle };
-                        });
-                      }}
-                      className="h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400"
-                    />
-                    Buat MOM sekalian
-                  </label>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Jika dicentang, link MOM akan dibuat otomatis (field Link MOM disembunyikan).
+                {!editingActivity && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={!!form.createMom}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setForm((f) => {
+                            if (!checked) return { ...f, createMom: false };
+                            const autoTitle =
+                              f.momTitle ||
+                              (selectedProspect
+                                ? `MOM - ${selectedProspect.namaProspek}`
+                                : f.tipeAktivitas
+                                  ? `MOM - ${f.tipeAktivitas}`
+                                  : "MOM");
+                            return { ...f, createMom: true, momTitle: autoTitle };
+                          });
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400"
+                      />
+                      Buat MOM sekalian
+                    </label>
+                    <div className="text-xs text-gray-400 mt-1">
+                      Jika dicentang, link MOM akan dibuat otomatis (field Link MOM disembunyikan).
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {form.createMom && (
+                {form.createMom && !editingActivity && (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Judul MOM *</label>
@@ -765,7 +848,9 @@ export default function ActivitiesClient() {
                   type="button"
                   onClick={() => {
                     setShowModal(false);
+                    setEditingActivity(null);
                     setDismissedProspectId(prospectIdFromQuery);
+                    setForm(EMPTY_FORM);
                   }}
                   className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >

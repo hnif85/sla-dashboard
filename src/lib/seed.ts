@@ -5,17 +5,6 @@ export async function seedDatabase() {
   const adminCount = await prisma.user.count();
   if (adminCount > 0) return;
 
-  const adminHash = await hashPassword("admin123");
-  const admin = await prisma.user.create({
-    data: {
-      name: "Administrator",
-      email: "admin@mwx.id",
-      passwordHash: adminHash,
-      role: "admin",
-      region: "All",
-    },
-  });
-
   const salesHash = await hashPassword("sales123");
   const sales1 = await prisma.user.create({
     data: {
@@ -40,7 +29,7 @@ export async function seedDatabase() {
   const stages = [
     { order: 1,  name: "1. Lead/Prospek",       description: "Prospek teridentifikasi dari riset & mapping. Decision maker sudah diketahui.", slaMin: 1,  slaTarget: 2,  slaMax: 3,  convRateTarget: 1.0  },
     { order: 2,  name: "2. Outreach (Email/WA)", description: "Email/WA pertama terkirim. Pitch singkat + link materi.", slaMin: 1, slaTarget: 3, slaMax: 5, convRateTarget: 0.6 },
-    { order: 3,  name: "3. Follow Up / Kit",     description: "Kirim proposal kit, one-pager, video demo. Reply diterima.", slaMin: 3, slaTarget: 5, slaMax: 7, convRateTarget: 0.5 },
+    { order: 3,  name: "3. Follow Up",     description: "Kirim proposal kit, one-pager, video demo. Reply diterima.", slaMin: 3, slaTarget: 5, slaMax: 7, convRateTarget: 0.5 },
     { order: 4,  name: "4. Meeting Discovery",   description: "Meeting pertama dengan decision maker. Pahami kebutuhan.", slaMin: 5, slaTarget: 7, slaMax: 14, convRateTarget: 0.7 },
     { order: 5,  name: "5. Demo/Presentasi",     description: "Live demo produk Whiz ke stakeholder. Jawab objection teknis.", slaMin: 3, slaTarget: 7, slaMax: 10, convRateTarget: 0.65 },
     { order: 6,  name: "6. Proposal Formal",     description: "Proposal resmi (PDF 8-10 hal), TOR/RAB, template MoU dikirim.", slaMin: 5, slaTarget: 10, slaMax: 14, convRateTarget: 0.55 },
@@ -92,6 +81,5 @@ export async function seedDatabase() {
     },
   });
 
-  console.log("✅ Database seeded: admin@mwx.id / admin123 | budi@mwx.id / sales123");
-  void admin;
+  console.log("✅ Database seeded: budi@mwx.id / sales123 | erik@mwx.id / sales123");
 }

@@ -60,6 +60,8 @@ export async function GET(req: NextRequest) {
     ]);
 
     const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
+    if (stageMap["3. Follow Up / Kit"]) stageMap["3. Follow Up"] = stageMap["3. Follow Up / Kit"];
+    if (stageMap["3. Follow Up"] && !stageMap["3. Follow Up / Kit"]) stageMap["3. Follow Up / Kit"] = stageMap["3. Follow Up"];
 
     const computeSLA = (stage: string, effectiveDate: Date) => {
       if (stage.includes("Closed")) return "Closed";
@@ -97,7 +99,8 @@ export async function GET(req: NextRequest) {
 
       const sl = computeSLA(p.stage, effectiveDate);
       const name = p.sales.name;
-      stageCount[p.stage] = (stageCount[p.stage] || 0) + 1;
+      const normStage = p.stage === "3. Follow Up / Kit" ? "3. Follow Up" : p.stage;
+      stageCount[normStage] = (stageCount[normStage] || 0) + 1;
 
       if (!salesPerf[name]) salesPerf[name] = { id: p.salesId, name, closed: 0, pipeline: 0, total: 0, onTrack: 0, atRisk: 0, overdue: 0 };
       salesPerf[name].total += 1;
@@ -161,7 +164,7 @@ export async function GET(req: NextRequest) {
       const byType: Record<string, number> = {};
       const bySales: Record<string, number> = {};
       for (const a of weekActivities) {
-        const t = a.tipeAktivitas || "Lainnya";
+        const t = a.tipeAktivitas === "WA/Call" ? "Follow Up" : (a.tipeAktivitas || "Lainnya");
         byType[t] = (byType[t] || 0) + 1;
         const s = a.sales.name;
         bySales[s] = (bySales[s] || 0) + 1;

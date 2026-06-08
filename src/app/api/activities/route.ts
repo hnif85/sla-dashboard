@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
   const activities = await prisma.activity.findMany({
     where,
-    include: { sales: { select: { name: true } }, prospect: { select: { id: true, namaProspek: true } } },
+    include: { sales: { select: { id: true, name: true } }, prospect: { select: { id: true, namaProspek: true } } },
     orderBy: { tanggal: "desc" },
   });
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         linkMOM: momLink || body.linkMOM,
         tanggal: body.tanggal ? new Date(body.tanggal) : new Date(),
       },
-      include: { sales: { select: { name: true } } },
+      include: { sales: { select: { id: true, name: true } } },
     });
 
     // Auto-update stage pipeline jika nextStage diisi dan berbeda dari stage saat ini
@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
 
       if (prospect && prospect.stage !== body.nextStage) {
         const funnelStages = await getCachedFunnelStages();
-        const stageInfo = funnelStages.find((s) => s.name === body.nextStage);
+        const normalizedNext = body.nextStage === "3. Follow Up / Kit" ? "3. Follow Up" : body.nextStage;
+        const stageInfo = funnelStages.find((s) => s.name === normalizedNext);
         const slaMax = stageInfo?.slaMax ?? 7;
         // Gunakan tanggal activity (bukan now) agar SLA dihitung dari waktu meeting sebenarnya
         const stageChangeDate = body.tanggal ? new Date(body.tanggal) : new Date();

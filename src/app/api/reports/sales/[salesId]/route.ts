@@ -118,6 +118,8 @@ export async function GET(
     }
 
     const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
+    if (stageMap["3. Follow Up / Kit"]) stageMap["3. Follow Up"] = stageMap["3. Follow Up / Kit"];
+    if (stageMap["3. Follow Up"] && !stageMap["3. Follow Up / Kit"]) stageMap["3. Follow Up / Kit"] = stageMap["3. Follow Up"];
     const isClosedWon = (s: string) => s === "9. Deal/Closed Won";
     const isClosedLost = (s: string) => s === "10. Closed Lost";
     const isClosed = (s: string) => s.includes("Closed");
@@ -168,7 +170,8 @@ export async function GET(
       const statusSLA = computeSLAStatus(p.stage, effectiveDate, slaMax);
       const hariDiStage = differenceInDays(new Date(), effectiveDate);
 
-      stageDist[p.stage] = (stageDist[p.stage] || 0) + 1;
+      const normStage = p.stage === "3. Follow Up / Kit" ? "3. Follow Up" : p.stage;
+      stageDist[normStage] = (stageDist[normStage] || 0) + 1;
 
       if (isClosedWon(p.stage)) {
         closedWonUmkm += p.estUmkmReach || 0;
@@ -224,7 +227,8 @@ export async function GET(
 
     // ── Activity Growth Chart (Cumulative) ──────────────────────────────────
     // All activity types ever used by this sales
-    const allTypes = [...new Set(activities.map((a) => a.tipeAktivitas || "Lainnya"))];
+    const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t;
+    const allTypes = [...new Set(activities.map((a) => normalizeType(a.tipeAktivitas || "Lainnya")))];
 
     // Baseline: count of each type BEFORE chartFrom (activities older than window)
     const baseline: Record<string, number> = {};
@@ -247,7 +251,7 @@ export async function GET(
       if (aDate < chartFrom) continue;
       const day = format(aDate, "yyyy-MM-dd");
       if (!deltaMap[day]) continue; // outside window
-      const type = a.tipeAktivitas || "Lainnya";
+      const type = normalizeType(a.tipeAktivitas || "Lainnya");
       deltaMap[day][type] = (deltaMap[day][type] || 0) + 1;
     }
 

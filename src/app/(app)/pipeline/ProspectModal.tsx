@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 const STAGES = [
-  "1. Lead/Prospek", "2. Outreach (Email/WA)", "3. Follow Up / Kit",
+  "1. Lead/Prospek", "2. Outreach (Email/WA)", "3. Follow Up",
   "4. Meeting Discovery", "5. Demo/Presentasi", "6. Proposal Formal",
   "7. Negosiasi", "8. Pilot (opsional)", "9. Deal/Closed Won", "0. Closed Lost",
 ];
 
 const ACTIVITY_TYPES = [
-  "Email", "WA/Call", "Meeting Online", "Meeting Offline",
+  "Email", "Meeting Online", "Meeting Offline",
   "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
 

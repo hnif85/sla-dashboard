@@ -3,8 +3,13 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   TrendingUp, Award, Target, CheckCircle2, AlertTriangle,
-  XCircle, Users, Activity, ChevronLeft, ChevronRight, Calendar,
+  XCircle, Users, Activity, ChevronLeft, ChevronRight, Calendar, BarChart3,
 } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  Legend, ResponsiveContainer,
+} from "recharts";
+import { startOfWeek, subDays, format } from "date-fns";
 
 /* ─── Types ────────────────────────────────────────────────── */
 interface SalesPerf {
@@ -33,6 +38,7 @@ interface DashboardData {
 
 interface ActivityRow {
   id: string;
+  tanggal: string;
   tipeAktivitas: string;
   sales: { name: string };
 }
@@ -45,9 +51,17 @@ const RANK_COLORS = [
 ];
 
 const ACTIVITY_TYPES = [
-  "Email", "WA/Call", "Meeting Online", "Meeting Offline",
+  "Email", "Meeting Online", "Meeting Offline",
   "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
+
+const TYPE_COLORS: Record<string, string> = {
+  "Email": "#6366f1", "Meeting Online": "#3b82f6",
+  "Meeting Offline": "#8b5cf6", "Presentasi": "#f59e0b", "Demo": "#ef4444",
+  "Negosiasi": "#ec4899", "Follow Up": "#14b8a6", "Lainnya": "#94a3b8",
+};
+
+const TYPE_FALLBACK = ["#6366f1","#10b981","#3b82f6","#f59e0b","#ef4444","#ec4899","#14b8a6","#8b5cf6","#94a3b8"];
 
 /* ─── Date helpers ──────────────────────────────────────────── */
 function toISO(d: Date) {
@@ -91,6 +105,7 @@ function ActivityRecapSection() {
   const [customTo, setCustomTo] = useState(toISO(new Date()));
   const [activities, setActivities] = useState<ActivityRow[] | null>(null);
   const [loadingAct, setLoadingAct] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
 
   const bounds = useCallback((): { from: string; to: string } => {
     if (mode === "thisWeek")  return getWeekBounds(0);
@@ -115,7 +130,8 @@ function ActivityRecapSection() {
   const salesMap: Record<string, Record<string, number>> = {};
   for (const a of activities ?? []) {
     if (!salesMap[a.sales.name]) salesMap[a.sales.name] = {};
-    salesMap[a.sales.name][a.tipeAktivitas] = (salesMap[a.sales.name][a.tipeAktivitas] || 0) + 1;
+    const tipe = a.tipeAktivitas === "WA/Call" ? "Follow Up" : a.tipeAktivitas;
+    salesMap[a.sales.name][tipe] = (salesMap[a.sales.name][tipe] || 0) + 1;
   }
   const salesList = Object.entries(salesMap).sort((a, b) => {
     const ta = Object.values(a[1]).reduce((s, x) => s + x, 0);
@@ -124,9 +140,12 @@ function ActivityRecapSection() {
   });
 
   // Only show types that have at least one activity in this period
-  const activeTypes = ACTIVITY_TYPES.filter((t) =>
+  const dataTypes = ACTIVITY_TYPES.filter((t) =>
     salesList.some(([, counts]) => (counts[t] || 0) > 0)
   );
+  const activeTypes = typeFilter.length === 0
+    ? dataTypes
+    : dataTypes.filter((t) => typeFilter.includes(t));
 
   const QUICK: { label: string; mode: PeriodMode }[] = [
     { label: "Minggu Ini", mode: "thisWeek" },
@@ -189,6 +208,46 @@ function ActivityRecapSection() {
         <ChevronRight size={12} />
         <span className="ml-1">·</span>
         <span>{activities?.length ?? 0} aktivitas</span>
+      </div>
+
+      {/* Filter aktivitas */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <span className="text-xs text-gray-400 font-medium mr-1">Jenis:</span>
+        <button
+          onClick={() => setTypeFilter([])}
+          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+            typeFilter.length === 0
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          Semua
+        </button>
+        {ACTIVITY_TYPES.map((type) => {
+          const active = typeFilter.length === 0 || typeFilter.includes(type);
+          return (
+            <button
+              key={type}
+              onClick={() =>
+                setTypeFilter((prev) => {
+                  if (prev.length === 0) return [type];
+                  if (prev.includes(type)) {
+                    const next = prev.filter((t) => t !== type);
+                    return next.length === 0 ? [] : next;
+                  }
+                  return [...prev, type];
+                })
+              }
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                active
+                  ? "bg-yellow-400 text-gray-900"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {type}
+            </button>
+          );
+        })}
       </div>
 
       {loadingAct ? (
@@ -310,6 +369,190 @@ function ActivityRecapSection() {
   );
 }
 
+/* ─── Activity Trend Section ────────────────────────────────── */
+function ActivityTrendSection() {
+  const [activities, setActivities] = useState<ActivityRow[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedSales, setSelectedSales] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
+
+  const weekCount = 8;
+  const dateFrom = toISO(startOfWeek(subDays(new Date(), 7 * weekCount - 1)));
+  const dateTo = toISO(new Date());
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/activities?dateFrom=${dateFrom}&dateTo=${dateTo}`)
+      .then((r) => r.json())
+      .then(setActivities)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t;
+
+  const allSales = [...new Set((activities ?? []).map((a) => a.sales.name))].sort();
+  const filtered = selectedSales
+    ? (activities ?? []).filter((a) => a.sales.name === selectedSales)
+    : (activities ?? []);
+
+  // Group: weekStart → tipeAktivitas → count
+  const weeklyMap: Record<string, Record<string, number>> = {};
+  for (const a of filtered) {
+    const week = format(startOfWeek(new Date(a.tanggal)), "yyyy-MM-dd");
+    const tipe = normalizeType(a.tipeAktivitas);
+    if (!weeklyMap[week]) weeklyMap[week] = {};
+    weeklyMap[week][tipe] = (weeklyMap[week][tipe] || 0) + 1;
+  }
+
+  const sortedWeeks = Object.keys(weeklyMap).sort();
+  const allChartTypes = [...new Set(filtered.map((a) => normalizeType(a.tipeAktivitas)))];
+  const activeTypes = typeFilter.length === 0
+    ? allChartTypes
+    : allChartTypes.filter((t) => typeFilter.includes(t));
+
+  const chartData = sortedWeeks.map((week) => {
+    const point: Record<string, string | number> = { week: format(new Date(week), "d MMM") };
+    for (const type of activeTypes) {
+      point[type] = weeklyMap[week][type] || 0;
+    }
+    return point;
+  });
+
+  function getTypeColor(type: string, idx: number): string {
+    return TYPE_COLORS[type] || TYPE_FALLBACK[idx % TYPE_FALLBACK.length];
+  }
+
+  function TrendTooltip({ active, payload, label }: {
+    active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string;
+  }) {
+    if (!active || !payload?.length) return null;
+    const sorted = [...payload].sort((a, b) => b.value - a.value);
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-3 text-sm min-w-[160px]">
+        <p className="font-semibold text-gray-700 mb-1.5 text-xs">{label}</p>
+        {sorted.map((p) => (
+          <div key={p.name} className="flex items-center justify-between gap-3 py-0.5">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+              <span className="text-gray-600 text-xs">{p.name}</span>
+            </span>
+            <span className="font-bold text-gray-900 text-xs tabular-nums">{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mr-auto">
+          <BarChart3 size={18} className="text-orange-500" />
+          <h2 className="font-semibold text-gray-900">Tren Aktivitas Mingguan</h2>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">8 minggu</span>
+        </div>
+      </div>
+
+      {/* Sales filter */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <button
+          onClick={() => setSelectedSales(null)}
+          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+            selectedSales === null
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Semua Sales
+        </button>
+        {allSales.map((name) => (
+          <button
+            key={name}
+            onClick={() => setSelectedSales(name)}
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              selectedSales === name
+                ? "bg-yellow-400 text-gray-900"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      {/* Filter aktivitas */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <span className="text-xs text-gray-400 font-medium mr-1">Jenis:</span>
+        <button
+          onClick={() => setTypeFilter([])}
+          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+            typeFilter.length === 0
+              ? "bg-gray-900 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          Semua
+        </button>
+        {ACTIVITY_TYPES.map((type) => {
+          const active = typeFilter.length === 0 || typeFilter.includes(type);
+          return (
+            <button
+              key={type}
+              onClick={() =>
+                setTypeFilter((prev) => {
+                  if (prev.length === 0) return [type];
+                  if (prev.includes(type)) {
+                    const next = prev.filter((t) => t !== type);
+                    return next.length === 0 ? [] : next;
+                  }
+                  return [...prev, type];
+                })
+              }
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                active
+                  ? "bg-yellow-400 text-gray-900"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {type}
+            </button>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-yellow-400" />
+        </div>
+      ) : chartData.length === 0 ? (
+        <div className="py-10 text-center text-gray-400 text-sm">Belum ada aktivitas di 8 minggu terakhir</div>
+      ) : (
+        <div className="w-full" style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} />
+              <Tooltip content={<TrendTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" iconSize={8} />
+              {activeTypes.map((type, idx) => (
+                <Bar
+                  key={type}
+                  dataKey={type}
+                  stackId="a"
+                  fill={getTypeColor(type, idx)}
+                  radius={[2, 2, 0, 0]}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      <p className="text-xs text-gray-400 mt-2">Total aktivitas per minggu (stacked by tipe). Klik nama sales untuk filter individu.</p>
+    </div>
+  );
+}
+
 /* ─── Main Page ─────────────────────────────────────────────── */
 export default function ReportsPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -415,6 +658,9 @@ export default function ReportsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-5">
         <ActivityRecapSection />
       </div>
+
+      {/* ── Tren Aktivitas Mingguan ──────────────────────────── */}
+      <ActivityTrendSection />
 
       {/* ── Performa per Sales — Cards ───────────────────────── */}
       <div>

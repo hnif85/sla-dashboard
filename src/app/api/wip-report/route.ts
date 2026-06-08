@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
   const activitiesMatrix: Record<string, Record<string, number>> = {};
   for (const a of activities) {
     const s = a.sales.name;
-    const t = a.tipeAktivitas || "Lainnya";
+    const t = a.tipeAktivitas === "WA/Call" ? "Follow Up" : (a.tipeAktivitas || "Lainnya");
     if (!activitiesMatrix[s]) activitiesMatrix[s] = {};
     activitiesMatrix[s][t] = (activitiesMatrix[s][t] || 0) + 1;
   }

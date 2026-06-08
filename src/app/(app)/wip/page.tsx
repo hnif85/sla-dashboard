@@ -70,7 +70,7 @@ interface WipData {
 
 /* ─── Constants ──────────────────────────────────────────────── */
 const ACTIVITY_TYPES = [
-  "Email", "WA/Call", "Meeting Online", "Meeting Offline",
+  "Email", "Meeting Online", "Meeting Offline",
   "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
 

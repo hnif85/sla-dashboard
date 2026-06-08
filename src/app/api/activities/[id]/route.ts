@@ -25,3 +25,36 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   await prisma.activity.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  const activity = await prisma.activity.findUnique({ where: { id } });
+  if (!activity) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Admin bisa edit semua; sales hanya milik sendiri
+  if (session.role !== "admin" && activity.salesId !== session.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+
+  const updated = await prisma.activity.update({
+    where: { id },
+    data: {
+      tipeAktivitas: body.tipeAktivitas,
+      tanggal: body.tanggal ? new Date(body.tanggal) : undefined,
+      pic: body.pic,
+      topikHasil: body.topikHasil,
+      nextStage: body.nextStage,
+      catatan: body.catatan,
+      linkMOM: body.linkMOM,
+    },
+    include: { sales: { select: { id: true, name: true } }, prospect: { select: { id: true, namaProspek: true } } },
+  });
+
+  return NextResponse.json(updated);
+}

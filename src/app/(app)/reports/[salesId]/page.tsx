@@ -57,10 +57,15 @@ interface CachedSummary { summary: string; generatedAt: string; generatedBy: str
 interface DrawerData { prospect: ProspectDetail; activities: ProspectActivity[]; moms: ProspectMOM[]; stageHistory: ProspectStageHistory[]; cachedSummary: CachedSummary | null; currentHash: string; }
 
 /* ─── Color palette ───────────────────────────────────────────── */
+const ALL_ACTIVITY_TYPES = [
+  "Email", "Meeting Online", "Meeting Offline",
+  "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
+];
+
 const TYPE_COLORS: Record<string, string> = {
-  "Email": "#6366f1", "WA/Call": "#10b981", "Meeting Online": "#3b82f6",
+  "Email": "#6366f1", "Meeting Online": "#3b82f6",
   "Meeting Offline": "#8b5cf6", "Presentasi": "#f59e0b", "Demo": "#ef4444",
-  "Negosiasi": "#ec4899", "Follow Up": "#14b8a6", "Lainnya": "#94a3b8",
+  "Negosiasi": "#ec4899", "Follow Up": "#10b981", "Lainnya": "#94a3b8",
 };
 function getTypeColor(type: string, idx: number): string {
   if (TYPE_COLORS[type]) return TYPE_COLORS[type];
@@ -443,6 +448,7 @@ export default function SalesReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chartDays, setChartDays] = useState(30);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [showAllOverdue, setShowAllOverdue] = useState(false);
   const [showAllAtRisk, setShowAllAtRisk] = useState(false);
   const [pipelineSort, setPipelineSort] = useState<"stage" | "sla" | "hari" | "umkm">("sla");
@@ -659,6 +665,45 @@ export default function SalesReportPage() {
               ))}
             </div>
           </div>
+          {/* Filter aktivitas */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-4">
+            <span className="text-xs text-gray-400 font-medium mr-1">Jenis:</span>
+            <button
+              onClick={() => setTypeFilter([])}
+              className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                typeFilter.length === 0
+                  ? "bg-gray-900 text-white"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              Semua
+            </button>
+            {ALL_ACTIVITY_TYPES.filter((t) => activityTypes.includes(t)).map((type) => {
+              const active = typeFilter.length === 0 || typeFilter.includes(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() =>
+                    setTypeFilter((prev) => {
+                      if (prev.length === 0) return [type];
+                      if (prev.includes(type)) {
+                        const next = prev.filter((t) => t !== type);
+                        return next.length === 0 ? [] : next;
+                      }
+                      return [...prev, type];
+                    })
+                  }
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                    active
+                      ? "bg-yellow-400 text-gray-900"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  }`}
+                >
+                  {type}
+                </button>
+              );
+            })}
+          </div>
           {activityGrowth.length === 0 || activityTypes.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Belum ada aktivitas</div>
           ) : (
@@ -670,7 +715,7 @@ export default function SalesReportPage() {
                   <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} allowDecimals={false} />
                   <Tooltip content={<CumulativeTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" iconSize={8} />
-                  {activityTypes.map((type, idx) => (
+                  {(typeFilter.length === 0 ? activityTypes : activityTypes.filter((t) => typeFilter.includes(t))).map((type, idx) => (
                     <Line
                       key={type}
                       type="monotone"
@@ -808,7 +853,11 @@ export default function SalesReportPage() {
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100" />
                   <div className="space-y-3">
-                    {timeline.map((item, idx) => (
+                    {timeline.filter((item) => {
+                      if (typeFilter.length === 0) return true;
+                      if (item.type !== "activity") return true;
+                      return typeFilter.includes(item.label);
+                    }).map((item, idx) => (
                       <div key={`${item.type}-${item.linkId}-${idx}`} className="flex gap-3">
                         <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${item.type === "activity" ? "bg-blue-50" : item.type === "stage_change" ? "bg-purple-50" : "bg-green-50"}`}>
                           <TimelineIcon type={item.type} />

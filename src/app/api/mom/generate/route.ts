@@ -19,13 +19,13 @@ Gunakan PERSIS struktur berikut (tidak boleh ada field tambahan):
     "nextMeeting": "tanggal meeting berikutnya format YYYY-MM-DD, atau null jika tidak ada"
   },
   "pipeline": {
-    "suggestedStage": "HARUS salah satu persis dari: 1. Lead/Prospek | 2. Outreach (Email/WA) | 3. Follow Up / Kit | 4. Meeting Discovery | 5. Demo/Presentasi | 6. Proposal Formal | 7. Negosiasi | 8. Pilot (opsional) | 9. Deal/Closed Won | 0. Closed Lost",
+    "suggestedStage": "HARUS salah satu persis dari: 1. Lead/Prospek | 2. Outreach (Email/WA) | 3. Follow Up | 4. Meeting Discovery | 5. Demo/Presentasi | 6. Proposal Formal | 7. Negosiasi | 8. Pilot (opsional) | 9. Deal/Closed Won | 0. Closed Lost",
     "probability": 0.5,
     "nextAction": "next action konkret yang harus dilakukan sales",
     "statusUpdate": "ringkasan singkat kenapa stage ini yang disarankan"
   },
   "activity": {
-    "tipeAktivitas": "HARUS salah satu persis dari: Email | WA/Call | Meeting Online | Meeting Offline | Presentasi | Demo | Negosiasi | Follow Up | Lainnya",
+    "tipeAktivitas": "HARUS salah satu persis dari: Email | Meeting Online | Meeting Offline | Presentasi | Demo | Negosiasi | Follow Up | Lainnya",
     "topikHasil": "ringkasan hasil aktivitas (max 150 karakter)",
     "nextStage": "stage berikutnya yang sama dengan pipeline.suggestedStage",
     "catatan": "catatan tambahan yang relevan"

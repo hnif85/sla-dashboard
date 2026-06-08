@@ -112,7 +112,7 @@ src/
 ```
 
 ## Funnel Stages (10)
-1. Lead/Prospek → 2. Outreach → 3. Follow Up/Kit → 4. Meeting Discovery → 5. Demo/Presentasi → 6. Proposal Formal → 7. Negosiasi → 8. Pilot (opsional) → 9. Deal/Closed Won → 10. Closed Lost
+1. Lead/Prospek → 2. Outreach → 3. Follow Up → 4. Meeting Discovery → 5. Demo/Presentasi → 6. Proposal Formal → 7. Negosiasi → 8. Pilot (opsional) → 9. Deal/Closed Won → 10. Closed Lost
 - SLA: tiap stage punya slaMin/slaTarget/slaMax. Status SLA: "On Track" (days ≤ slaMax×0.5) / "At Risk" (days ≤ slaMax) / "Overdue" (days > slaMax) dihitung dari effectiveDate (max of tglUpdateStage & last activity date).
 - Northstar target: 100.000 UMKM closed won (config: target_northstar_nasional).
 

@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Meeting Report — MWX Partnership</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg: #08080f;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.06);
+    --text: #e8e6f0;
+    --text-muted: #8884a0;
+    --accent-1: #06b6d4;
+    --accent-2: #8b5cf6;
+    --accent-3: #f59e0b;
+    --gradient: linear-gradient(135deg, #06b6d4, #8b5cf6);
+    --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --slide-w: min(100vw, 1400px);
+    --slide-h: min(100vh, 900px);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* === Slide Container === */
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .slides {
+    display: flex;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+    will-change: transform;
+  }
+  .slide {
+    min-width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+    overflow-y: auto;
+  }
+  .slide-inner {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* === Navigation === */
+  .nav-dots {
+    position: fixed;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 100;
+  }
+  .nav-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-muted);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .nav-dot:hover { border-color: var(--text); }
+  .nav-dot.active {
+    background: var(--gradient);
+    border-color: transparent;
+    box-shadow: 0 0 12px rgba(6,182,212,0.4);
+    transform: scale(1.3);
+  }
+  .nav-dot .label {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    font-family: var(--font-body);
+  }
+  .nav-dot:hover .label { opacity: 1; }
+
+  .nav-arrow {
+    position: fixed;
+    bottom: 1.5rem;
+    z-index: 100;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .nav-arrow:hover { background: var(--surface-hover); border-color: var(--accent-1); }
+  .nav-arrow:disabled { opacity: 0.2; cursor: default; }
+  .nav-prev { left: 1.5rem; }
+  .nav-next { right: 5rem; }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 1.8rem;
+    right: 1.5rem;
+    z-index: 100;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* === Slide 0 - Title === */
+  .slide-title {
+    text-align: center;
+  }
+  .slide-title .badge {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+  .slide-title h1 {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 800;
+    line-height: 1.05;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .slide-title .sub {
+    font-size: clamp(1rem, 2vw, 1.4rem);
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-weight: 300;
+  }
+  .slide-title .date {
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .slide-title .scroll-hint {
+    position: absolute;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 2s infinite;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+  }
+  @keyframes bounce {
+    0%,100%{ transform: translateX(-50%) translateY(0); }
+    50%{ transform: translateX(-50%) translateY(8px); }
+  }
+
+  /* === Slide 1 - Resume / Executive Summary === */
+  .resume-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .stat-card .val {
+    font-family: var(--font-display);
+    font-size: 2.8rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .stat-card .val.gold { background: var(--gradient-warm); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-card .val.cyan { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .stat-card .label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stat-card .sublabel {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+    opacity: 0.6;
+  }
+
+  /* === Detail Breakdown === */
+  .breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+  .breakdown-card h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+  .type-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .type-item:last-child { border: none; }
+  .type-item .count { font-weight: 600; color: var(--accent-1); }
+
+  .sales-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .sales-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+  }
+  .sales-row:last-child { border: none; }
+  .sales-row .name { font-weight: 500; }
+  .sales-row .count { font-weight: 600; color: var(--accent-2); }
+  .sales-row .bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    margin: 0 1rem;
+    overflow: hidden;
+  }
+  .sales-row .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--gradient);
+    transition: width 0.8s ease;
+  }
+  .sales-row .bar-fill.gold { background: var(--gradient-warm); }
+  .sales-row .bar-fill.purple { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+
+  /* === Section header === */
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+  }
+  .section-title .highlight { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* === Meeting Cards === */
+  .meeting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .meeting-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .meeting-card:hover {
+    background: var(--surface-hover);
+    border-color: rgba(6,182,212,0.2);
+    transform: translateX(4px);
+  }
+  .meeting-card .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .meeting-card .left { flex: 1; min-width: 200px; }
+  .meeting-card .right { text-align: right; flex-shrink: 0; }
+
+  .meeting-card .date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+  }
+  .meeting-card .prospek {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+  .meeting-card .meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .meeting-card .meta strong { color: var(--text); font-weight: 500; }
+  .meeting-card .tipe {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.03em;
+  }
+  .tipe-online { background: rgba(6,182,212,0.12); color: #67e8f9; }
+  .tipe-offline { background: rgba(139,92,246,0.12); color: #c4b5fd; }
+  .tipe-presentasi { background: rgba(245,158,11,0.12); color: #fcd34d; }
+  .next-stage {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+  }
+  .next-stage strong { color: var(--accent-3); font-weight: 500; }
+
+  .mom-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(6,182,212,0.08);
+    font-size: 0.7rem;
+    color: var(--accent-1);
+    cursor: pointer;
+    border: none;
+    font-family: var(--font-body);
+  }
+  .mom-badge:hover { background: rgba(6,182,212,0.15); }
+
+  .mom-excerpt {
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-left: 2px solid var(--accent-1);
+    background: rgba(6,182,212,0.04);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    display: none;
+  }
+  .mom-excerpt.open { display: block; }
+
+  /* === Responsive === */
+  @media (max-width: 900px) {
+    .resume-grid { grid-template-columns: repeat(2, 1fr); }
+    .breakdown { grid-template-columns: 1fr; }
+    .nav-dots { right: 0.75rem; gap: 0.4rem; }
+    .nav-dot .label { display: none; }
+    .slide { padding: 1.5rem 1rem; }
+    .nav-arrow { width: 36px; height: 36px; font-size: 0.9rem; }
+    .nav-prev { left: 0.75rem; }
+    .nav-next { right: 3.5rem; }
+  }
+  @media (max-width: 500px) {
+    .resume-grid { grid-template-columns: 1fr; }
+    .meeting-card .right { text-align: left; margin-top: 0.3rem; }
+  }
+
+  /* === Enter animation === */
+  .slide-enter { opacity: 0; transform: translateY(20px); }
+  .slide-enter.visible { opacity: 1; transform: translateY(0); transition: all 0.6s ease; }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+  <div class="slides" id="slides">
+
+    <!-- ============ SLIDE 0: TITLE ============ -->
+    <section class="slide slide-title" data-index="0">
+      <div class="slide-inner">
+        <div class="badge">MWX Partnership · Sales Pipeline</div>
+        <h1>Meeting Report</h1>
+        <p class="sub">Rekap aktivitas meeting, presentasi &amp; demo<br>periode 1 – 8 Juni 2026</p>
+        <p class="date">22 total meeting · 4 sales aktif</p>
+        <div class="scroll-hint">⌄</div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 1: RESUME / EXECUTIVE SUMMARY ============ -->
+    <section class="slide" data-index="1">
+      <div class="slide-inner">
+        <div class="section-label">Executive Summary</div>
+        <h2 class="section-title">Ringkasan <span class="highlight">Meeting</span></h2>
+
+        <div class="resume-grid">
+          <div class="stat-card">
+            <div class="val cyan">22</div>
+            <div class="label">Total Meeting</div>
+            <div class="sublabel">1–8 Juni 2026</div>
+          </div>
+          <div class="stat-card">
+            <div class="val gold">4</div>
+            <div class="label">Sales Aktif</div>
+            <div class="sublabel">dari tim Partnership</div>
+          </div>
+          <div class="stat-card">
+            <div class="val cyan">9</div>
+            <div class="label">Meeting Offline</div>
+            <div class="sublabel">tatap muka langsung</div>
+          </div>
+          <div class="stat-card">
+            <div class="val cyan">10</div>
+            <div class="label">Meeting Online</div>
+            <div class="sublabel">via virtual</div>
+          </div>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-card">
+            <h3>Berdasarkan Tipe</h3>
+            <div class="type-item"><span>Meeting Online</span><span class="count">10</span></div>
+            <div class="type-item"><span>Meeting Offline</span><span class="count">9</span></div>
+            <div class="type-item"><span>Presentasi</span><span class="count">1</span></div>
+            <div class="type-item"><span>Demo</span><span class="count">2</span></div>
+          </div>
+          <div class="breakdown-card">
+            <h3>Berdasarkan Sales</h3>
+            <div class="sales-summary">
+              <div class="sales-row">
+                <span class="name">Dimas</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:100%"></div></div>
+                <span class="count">7</span>
+              </div>
+              <div class="sales-row">
+                <span class="name">Tessa</span>
+                <div class="bar-wrap"><div class="bar-fill gold" style="width:100%"></div></div>
+                <span class="count">7</span>
+              </div>
+              <div class="sales-row">
+                <span class="name">Riany</span>
+                <div class="bar-wrap"><div class="bar-fill purple" style="width:71%"></div></div>
+                <span class="count">5</span>
+              </div>
+              <div class="sales-row">
+                <span class="name">Regita</span>
+                <div class="bar-wrap"><div class="bar-fill" style="width:43%"></div></div>
+                <span class="count">3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 2: DIMAS ============ -->
+    <section class="slide" data-index="2">
+      <div class="slide-inner">
+        <div class="section-label">Detail per Sales</div>
+        <h2 class="section-title"><span class="highlight">Dimas</span> · 7 Meeting</h2>
+        <div class="meeting-list">
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">Istiqlal × Voyage</div>
+                <div class="meta">PIC: <strong>Pungkas</strong></div>
+                <div class="next-stage">Next Stage: <strong>6. Proposal Formal</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">Yayasan Astra YDBA</div>
+                <div class="meta">PIC: <strong>Hafiz</strong> — MWX jadi pembicara 2 hari offline onboarding 35 UMKM pilihan YDBA</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">11thSpace (Event XLR8)</div>
+                <div class="meta">PIC: <strong>Stephanie</strong> — MWX AI Perdana masuk Program XLR8, onboarding 8 FinanceWhiz UMKM</div>
+                <div class="next-stage">Next Stage: <strong>8. Pilot (opsional)</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">Tanri Abeng University</div>
+                <div class="meta">PIC: <strong>Prof Syanto</strong> — Besok (9/6) meeting offline, bahas program kolaborasi</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">RumahBUMN Jakarta</div>
+                <div class="meta">PIC: <strong>Shyhaz</strong> — Demo aplikasi, pair event di RBUMN dgn CSR</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">Seabank</div>
+                <div class="meta">PIC: <strong>Toro</strong> — Kolaborasi onboarding, pakai MWX disponsori CSR SeaBank, godok TOR</div>
+                <div class="next-stage">Next Stage: <strong>6. Proposal Formal</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Selasa, 2 Juni 2026</div>
+                <div class="prospek">Prima Cakrawala Abadi Tbk</div>
+                <div class="meta">PIC: <strong>Didit</strong> — CSR program kait dgn kementrian kelautan, pelajari pivot ke UMKM</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 3: TESSA ============ -->
+    <section class="slide" data-index="3">
+      <div class="slide-inner">
+        <div class="section-label">Detail per Sales</div>
+        <h2 class="section-title"><span class="highlight">Tessa</span> · 7 Meeting</h2>
+        <div class="meeting-list">
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">PT Sidomulyo Selaras Tbk</div>
+                <div class="meta">PIC: <strong>Pak Charlos</strong> — Impact+</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">Dekkson Group</div>
+                <div class="meta">PIC: <strong>Mas Febrian</strong> — FU program CSR</div>
+                <div class="next-stage">Next Stage: <strong>3. Follow Up / Kit</strong></div>
+                <button class="mom-badge" onclick="toggleMom(this)">📄 MOM — Dekkson Group</button>
+                <div class="mom-excerpt">Diskusi: program CSR biasanya dilakukan perusahaan di akhir tahun. Keputusan: masih dalam diskusi management dekkson untuk terkait impact plus.</div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">Asosiasi UMKM Utama</div>
+                <div class="meta">PIC: <strong>Kang Edo</strong> — Pembahasan kerjasama</div>
+                <div class="next-stage">Next Stage: <strong>1. Lead/Prospek</strong></div>
+                <button class="mom-badge" onclick="toggleMom(this)">📄 MOM — Asosiasi UMKM Utama</button>
+                <div class="mom-excerpt">Diskusi: masih dalam review PKS.</div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">Edo Partnership</div>
+                <div class="meta">PIC: <strong>Kang Edo</strong> — Update prospek Jawa Timur</div>
+                <div class="next-stage">Next Stage: <strong>3. Follow Up / Kit</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">Yayasan Senyum Insan Nusantara</div>
+                <div class="meta">PIC: <strong>Mas Deri &amp; team</strong> — Workshop kota Banten batch 1 akhir Juni</div>
+                <div class="next-stage">Next Stage: <strong>3. Follow Up / Kit</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">PT Balatif</div>
+                <div class="meta">PIC: <strong>Pak Hardi &amp; Pak Tyo</strong> — Program Impact+</div>
+                <div class="next-stage">Next Stage: <strong>7. Negosiasi</strong></div>
+                <button class="mom-badge" onclick="toggleMom(this)">📄 MOM — PT Balatif</button>
+                <div class="mom-excerpt">Diskusi: balatif biasanya melakukan program CSR untuk bencana alam, menanam pohon, dan membantu warga kurang mampu dengan produk mereka. Keputusan: akan didiskusikan dengan management Balatif apakah impact+ bisa masuk program perusahaan.</div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">Tangan Di Atas</div>
+                <div class="meta">PIC: <strong>Pak Djuniarto</strong> — Ajukan kerjasama sponsor, rejected</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 4: RIANY ============ -->
+    <section class="slide" data-index="4">
+      <div class="slide-inner">
+        <div class="section-label">Detail per Sales</div>
+        <h2 class="section-title"><span class="highlight">Riany</span> · 5 Meeting</h2>
+        <div class="meeting-list">
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">SMBC</div>
+                <div class="meta">PIC: <strong>Theo</strong> — Presentasi &amp; kirim proposal Impact+</div>
+                <div class="next-stage">Next Stage: <strong>7. Negosiasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Senin, 8 Juni 2026</div>
+                <div class="prospek">Mayora (Le Minerale)</div>
+                <div class="meta">PIC: <strong>Kristian</strong> — Fokus event FIFA, belum ada kebutuhan CSR</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">Mayora (Le Minerale)</div>
+                <div class="meta">PIC: <strong>Kristian</strong> — Menunggu data trial mediawave</div>
+                <div class="next-stage">Next Stage: <strong>7. Negosiasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">SMBC</div>
+                <div class="meta">PIC: <strong>Theo, Rendy</strong> — Tertarik social listening tools Mediawave, ganti dari Idea Bakers</div>
+                <div class="next-stage">Next Stage: <strong>7. Negosiasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">Dinas Pariwisata Badung Bali</div>
+                <div class="meta">PIC: <strong>Anne</strong> — Tertarik, tapi masih open pitch untuk vendor lain</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-online">Meeting Online</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 5: REGITA ============ -->
+    <section class="slide" data-index="5">
+      <div class="slide-inner">
+        <div class="section-label">Detail per Sales</div>
+        <h2 class="section-title"><span class="highlight">Regita</span> · 3 Meeting</h2>
+        <div class="meeting-list">
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Jumat, 5 Juni 2026</div>
+                <div class="prospek">ITDC</div>
+                <div class="meta">PIC: <strong>Pak Apong</strong> — Kirimkan proposal untuk ITDC</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-presentasi">Presentasi</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Kamis, 4 Juni 2026</div>
+                <div class="prospek">IKMA BPIFK</div>
+                <div class="meta">PIC: <strong>Mas Diki</strong> — Kolaborasi workshop bersama</div>
+                <div class="next-stage">Next Stage: <strong>3. Follow Up / Kit</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meeting-card">
+            <div class="top">
+              <div class="left">
+                <div class="date">Rabu, 3 Juni 2026</div>
+                <div class="prospek">Bank of China</div>
+                <div class="meta">PIC: <strong>IFC</strong> — Kolaborasi dengan International Finance Corporation</div>
+                <div class="next-stage">Next Stage: <strong>5. Demo/Presentasi</strong></div>
+              </div>
+              <div class="right">
+                <span class="tipe tipe-offline">Meeting Offline</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SLIDE 6: CLOSING ============ -->
+    <section class="slide slide-title" data-index="6">
+      <div class="slide-inner">
+        <div class="badge">MWX Partnership</div>
+        <h1 style="font-size:clamp(2rem,5vw,4rem)">Sekian &amp; Terima Kasih</h1>
+        <p class="sub" style="max-width:600px;margin:1rem auto 0">
+          Data ditarik langsung dari database per 8 Juni 2026.<br>
+          22 meeting · 4 sales aktif · 1 minggu
+        </p>
+        <div style="margin-top:3rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <span style="padding:0.4rem 1rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-size:0.8rem;color:var(--text-muted)">← Gunakan panah navigasi</span>
+          <span style="padding:0.4rem 1rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);font-size:0.8rem;color:var(--text-muted)">atau klik dot samping kanan</span>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /slides -->
+</div><!-- /deck -->
+
+<!-- Navigation -->
+<div class="nav-dots" id="navDots"></div>
+<button class="nav-arrow nav-prev" id="prevBtn" onclick="goTo(current-1)" disabled>‹</button>
+<button class="nav-arrow nav-next" id="nextBtn" onclick="goTo(current+1)">›</button>
+<div class="slide-counter" id="counter">1 / 7</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  // Build dots
+  const dotsContainer = document.getElementById('navDots');
+  const labels = ['Judul','Ringkasan','Dimas','Tessa','Riany','Regita','Penutup'];
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Slide ' + (i+1));
+    const lbl = document.createElement('span');
+    lbl.className = 'label';
+    lbl.textContent = labels[i] || 'Slide ' + (i+1);
+    dot.appendChild(lbl);
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  });
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= total) return;
+    current = idx;
+    document.getElementById('slides').style.transform = 'translateX(-' + (idx * 100) + '%)';
+    document.querySelectorAll('.nav-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+    document.getElementById('counter').textContent = (idx + 1) + ' / ' + total;
+    document.getElementById('prevBtn').disabled = idx === 0;
+    document.getElementById('nextBtn').disabled = idx === total - 1;
+    document.title = labels[idx] + ' — Meeting Report MWX';
+  }
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      e.preventDefault(); goTo(current + 1);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault(); goTo(current - 1);
+    }
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+  });
+
+  // Toggle MOM excerpt
+  function toggleMom(btn) {
+    const excerpt = btn.nextElementSibling;
+    if (excerpt && excerpt.classList.contains('mom-excerpt')) {
+      excerpt.classList.toggle('open');
+    }
+  }
+  window.toggleMom = toggleMom;
+</script>
+
+</body>
+</html>
