@@ -4,6 +4,7 @@ import { Plus, X, Search, ExternalLink, Trash2, Edit2, ChevronLeft, ChevronRight
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 
 interface Activity {
   id: string;
@@ -72,6 +73,7 @@ const EMPTY_FORM = {
 
 export default function ActivitiesClient() {
   const { user } = useAuth();
+  const { pipelineType } = usePipelineFilter();
   const searchParams = useSearchParams();
   const prospectIdFromQuery = searchParams?.get("prospectId") || "";
 
@@ -90,7 +92,11 @@ export default function ActivitiesClient() {
   const PAGE_SIZE = 15;
 
   const fetchActivities = (prospectId?: string) => {
-    const url = prospectId ? `/api/activities?prospectId=${encodeURIComponent(prospectId)}` : "/api/activities";
+    const params = new URLSearchParams();
+    if (prospectId) params.set("prospectId", prospectId);
+    if (pipelineType) params.set("pipelineType", pipelineType);
+    const qs = params.toString();
+    const url = qs ? `/api/activities?${qs}` : "/api/activities";
     return fetch(url)
       .then((r) => r.json())
       .then((data) => setActivities(data));
@@ -109,13 +115,14 @@ export default function ActivitiesClient() {
 
   useEffect(() => {
     fetchActivities(prospectIdFromQuery || undefined);
-  }, [prospectIdFromQuery]);
+  }, [prospectIdFromQuery, pipelineType]);
 
   useEffect(() => {
-    fetch("/api/pipeline")
+    const url = pipelineType ? `/api/pipeline?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/pipeline";
+    fetch(url)
       .then((r) => r.json())
       .then(setProspects);
-  }, []);
+  }, [pipelineType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

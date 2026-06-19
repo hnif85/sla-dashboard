@@ -20,9 +20,11 @@ export async function GET(req: NextRequest) {
   const prospectId = url.searchParams.get("prospectId") || undefined;
   const dateFrom = url.searchParams.get("dateFrom") || undefined;
   const dateTo = url.searchParams.get("dateTo") || undefined;
+  const pipelineType = url.searchParams.get("pipelineType") || undefined;
 
   const where: Record<string, unknown> = session.role === "sales" ? { salesId: session.userId } : {};
   if (prospectId) where.prospectId = prospectId;
+  if (pipelineType) where.prospect = { pipelineType };
   if (dateFrom || dateTo) {
     where.tanggal = {
       ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
