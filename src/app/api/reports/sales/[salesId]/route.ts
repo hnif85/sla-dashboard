@@ -34,6 +34,7 @@ export async function GET(
   // Parse query params untuk filter activity chart
   const url = new URL(req.url);
   const activityDays = parseInt(url.searchParams.get("days") || "30");
+  const pipelineType = url.searchParams.get("pipelineType") || undefined;
   const chartFrom = startOfDay(subDays(new Date(), activityDays - 1));
 
   try {
@@ -46,11 +47,12 @@ export async function GET(
         }),
         getCachedFunnelStages(),
         prisma.prospect.findMany({
-          where: { salesId, deletedAt: null },
+          where: { salesId, deletedAt: null, ...(pipelineType ? { pipelineType } : {}) },
           select: {
             id: true,
             namaProspek: true,
             channel: true,
+            pipelineType: true,
             produkFokus: true,
             stage: true,
             tglMasuk: true,
@@ -143,6 +145,7 @@ export async function GET(
       weightedUmkm: number | null;
       tglUpdateStage: Date;
       channel: string | null;
+      pipelineType: string | null;
       produkFokus: string | null;
     }[] = [];
 
@@ -194,6 +197,7 @@ export async function GET(
           weightedUmkm: p.weightedUmkm,
           tglUpdateStage: effectiveDate,
           channel: p.channel,
+          pipelineType: p.pipelineType,
           produkFokus: p.produkFokus,
         });
 

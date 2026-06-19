@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { getCached, setCached } from "@/lib/fetch-cache";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 import { TrendingUp, Target, Activity, AlertTriangle, CheckCircle2, Clock, CalendarDays, BarChart2, Users, ArrowRightLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 
@@ -249,6 +250,7 @@ function WeeklySummaryWidget({ summary }: { summary: WeeklySummary }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { pipelineType } = usePipelineFilter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(() => getCached<DashboardData>("/api/dashboard") === null);
   const [error, setError] = useState<string | null>(null);
@@ -263,7 +265,8 @@ export default function DashboardPage() {
       if (stale) { setData(stale); setLoading(false); }
 
       try {
-        const res = await fetch("/api/dashboard");
+        const url = pipelineType ? `/api/dashboard?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/dashboard";
+        const res = await fetch(url);
         const body = (await res.json().catch(() => null)) as unknown;
 
         if (!res.ok) {
@@ -301,7 +304,7 @@ export default function DashboardPage() {
     load();
     loadTasks();
     return () => { cancelled = true; };
-  }, []);
+  }, [pipelineType]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">

@@ -14,9 +14,13 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const url = new URL(req.url);
+  const pipelineType = url.searchParams.get("pipelineType") || undefined;
+
   const prospectWhere = session.role === "sales"
     ? { salesId: session.userId, deletedAt: null }
     : { deletedAt: null };
+  if (pipelineType) (prospectWhere as Record<string, unknown>).pipelineType = pipelineType;
 
   const activityWhere = session.role === "sales"
     ? { salesId: session.userId }

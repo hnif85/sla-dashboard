@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 import {
   ArrowLeft, TrendingUp, Users, Target, CheckCircle2, AlertTriangle,
   XCircle, Activity, FileText, Clock, ChevronDown, ChevronUp,
@@ -27,11 +28,11 @@ interface SLAHealth {
   onTrack: number; atRisk: number; overdue: number;
   overdueProspects: ProspectSLA[]; atRiskProspects: ProspectSLA[];
 }
-interface ProspectSLA { id: string; namaProspek: string; stage: string; hariDiStage: number; statusSLA: string; }
+interface ProspectSLA { id: string; namaProspek: string; stage: string; hariDiStage: number; statusSLA: string; pipelineType?: string | null; }
 interface PipelineItem {
   id: string; namaProspek: string; stage: string; statusSLA: string; hariDiStage: number;
   estUmkmReach: number | null; estNilaiDeal: number | null; probability: number | null;
-  weightedUmkm: number | null; tglUpdateStage: string; channel: string | null; produkFokus: string | null;
+  weightedUmkm: number | null; tglUpdateStage: string; channel: string | null; produkFokus: string | null; pipelineType: string | null;
 }
 interface ActivityGrowthPoint { date: string; total: number; [key: string]: string | number; }
 interface MOMItem { id: string; title: string; tanggal: string; prospectId: string | null; prospectName: string | null; participants: string | null; agenda: string | null; }
@@ -442,6 +443,7 @@ export default function SalesReportPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { pipelineType } = usePipelineFilter();
   const salesId = params.salesId as string;
 
   const [data, setData] = useState<ReportData | null>(null);
@@ -460,14 +462,16 @@ export default function SalesReportPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/reports/sales/${salesId}?days=${days}`);
+      const query = new URLSearchParams({ days: String(days) });
+      if (pipelineType) query.set("pipelineType", pipelineType);
+      const res = await fetch(`/api/reports/sales/${salesId}?${query.toString()}`);
       if (res.status === 403) { setError("Akses ditolak"); return; }
       if (res.status === 404) { setError("Sales tidak ditemukan"); return; }
       if (!res.ok) { setError("Gagal memuat data laporan"); return; }
       setData(await res.json());
     } catch { setError("Terjadi kesalahan jaringan"); }
     finally { setLoading(false); }
-  }, [salesId]);
+  }, [salesId, pipelineType]);
 
   useEffect(() => { load(chartDays); }, [load, chartDays]);
 

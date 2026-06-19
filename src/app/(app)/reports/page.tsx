@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 import {
   TrendingUp, Award, Target, CheckCircle2, AlertTriangle,
   XCircle, Users, Activity, ChevronLeft, ChevronRight, Calendar, BarChart3,
@@ -557,10 +558,12 @@ function ActivityTrendSection() {
 export default function ReportsPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { pipelineType } = usePipelineFilter();
 
   useEffect(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then(setData).finally(() => setLoading(false));
-  }, []);
+    const url = pipelineType ? `/api/dashboard?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/dashboard";
+    fetch(url).then((r) => r.json()).then(setData).finally(() => setLoading(false));
+  }, [pipelineType]);
 
   if (loading) return (
     <div className="flex justify-center items-center h-64">

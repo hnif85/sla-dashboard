@@ -109,6 +109,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           : existing.salesId,
       namaProspek: body.namaProspek ?? existing.namaProspek,
       channel: body.channel ?? existing.channel,
+      pipelineType: body.pipelineType ?? existing.pipelineType,
       produkFokus: body.produkFokus ?? existing.produkFokus,
       kontakPIC: body.kontakPIC ?? existing.kontakPIC,
       kontakInfo: body.kontakInfo ?? existing.kontakInfo,

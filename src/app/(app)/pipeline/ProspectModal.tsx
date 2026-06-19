@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 
 const STAGES = [
   "1. Lead/Prospek", "2. Outreach (Email/WA)", "3. Follow Up",
@@ -33,10 +34,12 @@ interface ProspectModalProps {
 export default function ProspectModal({ onClose, onSaved, userRole, initialData, prospectId }: ProspectModalProps) {
   const [salesList, setSalesList] = useState<Array<{ id: string; name: string }>>([]);
   const [funnelStages, setFunnelStages] = useState<FunnelStage[]>([]);
+  const { pipelineType: globalPipelineType } = usePipelineFilter();
   const [form, setForm] = useState({
     namaProspek: "",
     channel: "",
     produkFokus: "",
+    pipelineType: (initialData?.pipelineType as string) || globalPipelineType || "",
     kontakPIC: "",
     kontakInfo: "",
     stage: "1. Lead/Prospek",
@@ -177,6 +180,18 @@ export default function ProspectModal({ onClose, onSaved, userRole, initialData,
               >
                 <option value="">Pilih Produk</option>
                 {PRODUCTS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pipeline</label>
+              <select
+                value={form.pipelineType as string}
+                onChange={(e) => handleChange("pipelineType", e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+              >
+                <option value="">Pilih Pipeline</option>
+                <option value="mwx">MWX</option>
+                <option value="mediawave">Mediawave</option>
               </select>
             </div>
             <div>

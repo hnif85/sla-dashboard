@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter, type PipelineType } from "@/contexts/PipelineFilterContext";
 import {
   LayoutDashboard, Target, Activity, FileText, Settings,
   Users, Sliders, LogOut, ChevronRight, TrendingUp, CalendarDays,
-  ClipboardList, Megaphone, PanelLeftClose, PanelLeftOpen, UsersRound, BarChart3, Briefcase,
+  ClipboardList, Megaphone, PanelLeftClose, PanelLeftOpen, UsersRound, BarChart3, Briefcase, Layers,
 } from "lucide-react";
 
 const navItems = [
@@ -34,6 +35,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { pipelineType, setPipelineType } = usePipelineFilter();
 
   const navLink = (href: string, label: string, icon: React.ElementType, active: boolean) => {
     const Icon = icon;
@@ -90,6 +92,36 @@ export default function Sidebar({
 
       {/* Nav items */}
       <div className={`py-4 border-b border-gray-700 flex-shrink-0 ${collapsed ? "px-2" : "px-3"}`}>
+        {/* Pipeline type filter */}
+        {!collapsed && (
+          <div className="mb-3 px-2">
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Pipeline</div>
+            <select
+              value={pipelineType || ""}
+              onChange={(e) => setPipelineType((e.target.value || null) as PipelineType)}
+              className="w-full text-xs border border-gray-600 bg-gray-800 text-gray-200 rounded-lg px-2.5 py-2 outline-none focus:ring-2 focus:ring-yellow-400"
+            >
+              <option value="">Semua Pipeline</option>
+              <option value="mwx">MWX</option>
+              <option value="mediawave">Mediawave</option>
+            </select>
+          </div>
+        )}
+        {collapsed && (
+          <div className="mb-2 flex justify-center" title={`Pipeline: ${pipelineType ? pipelineType.toUpperCase() : "Semua"}`}>
+            <button
+              onClick={() => {
+                if (pipelineType === null) setPipelineType("mwx");
+                else if (pipelineType === "mwx") setPipelineType("mediawave");
+                else setPipelineType(null);
+              }}
+              className="p-1.5 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
+              title={`Pipeline: ${pipelineType ? pipelineType.toUpperCase() : "Semua"}`}
+            >
+              <Layers size={16} className={pipelineType ? "text-yellow-400" : "text-gray-500"} />
+            </button>
+          </div>
+        )}
         {!collapsed && (
           <div className="text-xs text-gray-400 uppercase tracking-wider mb-2 px-2">Menu</div>
         )}

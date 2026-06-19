@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 import { Plus, Search, Eye, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import ProspectModal from "./ProspectModal";
 import { getCached, setCached, bustCachePrefix } from "@/lib/fetch-cache";
@@ -11,6 +12,7 @@ interface Prospect {
   id: string;
   namaProspek: string;
   channel: string;
+  pipelineType: string | null;
   stage: string;
   nextAction: string;
   estUmkmReach: number;
@@ -82,6 +84,7 @@ function Th({ label, sortKey, current, dir, onSort, className = "" }: {
 function PipelineContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const { pipelineType } = usePipelineFilter();
   const [prospects, setProspects] = useState<Prospect[]>(() => getCached<Prospect[]>("/api/pipeline") ?? []);
   const [loading, setLoading]     = useState(() => getCached<Prospect[]>("/api/pipeline") === null);
   const [search, setSearch]       = useState("");
@@ -94,7 +97,8 @@ function PipelineContent() {
 
 
   const load = () => {
-    fetch("/api/pipeline")
+    const url = pipelineType ? `/api/pipeline?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/pipeline";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => { setCached("/api/pipeline", data); setProspects(data); })
       .finally(() => setLoading(false));
@@ -104,7 +108,7 @@ function PipelineContent() {
     const stale = getCached<Prospect[]>("/api/pipeline");
     if (stale) setLoading(false);
     load();
-  }, []);
+  }, [pipelineType]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -118,10 +122,11 @@ function PipelineContent() {
       const matchStage = !filterStage || p.stage === filterStage;
       const matchSLA   = !filterSLA   || p.statusSLA === filterSLA;
       const matchSales = !filterSales || p.sales.name === filterSales;
-      return matchSearch && matchStage && matchSLA && matchSales;
+      const matchPipeline = !pipelineType || p.pipelineType === pipelineType;
+      return matchSearch && matchStage && matchSLA && matchSales && matchPipeline;
     });
     return sortProspects(base, sortKey, sortDir);
-  }, [prospects, search, filterStage, filterSLA, filterSales, sortKey, sortDir]);
+  }, [prospects, search, filterStage, filterSLA, filterSales, pipelineType, sortKey, sortDir]);
 
   const stages    = [...new Set(prospects.map((p) => p.stage))].sort();
   const salesList = [...new Set(prospects.map((p) => p.sales.name))].sort();
@@ -206,7 +211,7 @@ function PipelineContent() {
                   <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{p.namaProspek}</div>
-                      <div className="text-xs text-gray-400">{p.channel || "-"}</div>
+                      <div className="text-xs text-gray-400">{p.channel || "-"}{p.pipelineType && <span className={`ml-1.5 inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${p.pipelineType === "mwx" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>{p.pipelineType.toUpperCase()}</span>}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{p.sales.name}</td>
                     <td className="px-4 py-3">
@@ -247,7 +252,7 @@ function PipelineContent() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{p.namaProspek}</div>
-                    <div className="text-xs text-gray-400">{p.channel || "-"} · {p.sales.name}</div>
+                    <div className="text-xs text-gray-400">{p.channel || "-"} · {p.sales.name}{p.pipelineType && <span className={`ml-1.5 inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${p.pipelineType === "mwx" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>{p.pipelineType.toUpperCase()}</span>}</div>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${SLA_STYLES[p.statusSLA] || SLA_STYLES["Closed"]}`}>
                     {p.statusSLA}

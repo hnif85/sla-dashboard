@@ -60,6 +60,7 @@ interface Prospect {
   id: string;
   namaProspek: string;
   channel: string;
+  pipelineType: string | null;
   produkFokus: string;
   kontakPIC: string;
   kontakInfo: string;
@@ -149,6 +150,11 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
           <div className="min-w-0">
             <h1 className="text-lg md:text-xl font-bold text-gray-900 leading-tight">{prospect.namaProspek}</h1>
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
+              {prospect.pipelineType && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${prospect.pipelineType === "mwx" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+                  {prospect.pipelineType.toUpperCase()}
+                </span>
+              )}
               <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{prospect.stage}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SLA_STYLES[prospect.statusSLA]}`}>{prospect.statusSLA}</span>
             </div>
@@ -457,6 +463,7 @@ export default function ProspectDetailPage({ params }: { params: Promise<{ id: s
           initialData={{
             namaProspek: prospect.namaProspek,
             channel: prospect.channel,
+            pipelineType: prospect.pipelineType,
             produkFokus: prospect.produkFokus,
             kontakPIC: prospect.kontakPIC,
             kontakInfo: prospect.kontakInfo,

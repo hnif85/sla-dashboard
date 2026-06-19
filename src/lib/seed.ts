@@ -63,6 +63,7 @@ export async function seedDatabase() {
       salesId: sales1.id,
       namaProspek: "PT Telkom Indonesia (CSR)",
       channel: "Impact+",
+      pipelineType: "mwx",
       produkFokus: "Multi-Product / Bundle",
       kontakPIC: "Ibu Ratna (VP CSR)",
       kontakInfo: "ratna@telkom.co.id",

@@ -16,9 +16,13 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const where = session.role === "sales"
+  const url = new URL(req.url);
+  const pipelineType = url.searchParams.get("pipelineType") || undefined;
+
+  const where: Record<string, unknown> = session.role === "sales"
     ? { salesId: session.userId, deletedAt: null }
     : { deletedAt: null };
+  if (pipelineType) where.pipelineType = pipelineType;
 
   // Fetch prospects + cached funnel stages in parallel
   const [prospects, funnelStages] = await Promise.all([
@@ -28,6 +32,7 @@ export async function GET(req: NextRequest) {
         id: true,
         namaProspek: true,
         channel: true,
+        pipelineType: true,
         stage: true,
         nextAction: true,
         estUmkmReach: true,
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
       salesId,
       namaProspek: body.namaProspek,
       channel: body.channel,
+      pipelineType: body.pipelineType || null,
       produkFokus: body.produkFokus,
       kontakPIC: body.kontakPIC,
       kontakInfo: body.kontakInfo,
