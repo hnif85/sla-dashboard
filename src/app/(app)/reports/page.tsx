@@ -53,12 +53,12 @@ const RANK_COLORS = [
 
 const ACTIVITY_TYPES = [
   "Email", "Meeting Online", "Meeting Offline",
-  "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
+  "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
 
 const TYPE_COLORS: Record<string, string> = {
   "Email": "#6366f1", "Meeting Online": "#3b82f6",
-  "Meeting Offline": "#8b5cf6", "Presentasi": "#f59e0b", "Demo": "#ef4444",
+  "Meeting Offline": "#8b5cf6", "Demo": "#ef4444",
   "Negosiasi": "#ec4899", "Follow Up": "#14b8a6", "Lainnya": "#94a3b8",
 };
 
@@ -131,7 +131,7 @@ function ActivityRecapSection() {
   const salesMap: Record<string, Record<string, number>> = {};
   for (const a of activities ?? []) {
     if (!salesMap[a.sales.name]) salesMap[a.sales.name] = {};
-    const tipe = a.tipeAktivitas === "WA/Call" ? "Follow Up" : a.tipeAktivitas;
+    const tipe = a.tipeAktivitas === "WA/Call" ? "Follow Up" : a.tipeAktivitas === "Presentasi" ? "Meeting Offline" : a.tipeAktivitas;
     salesMap[a.sales.name][tipe] = (salesMap[a.sales.name][tipe] || 0) + 1;
   }
   const salesList = Object.entries(salesMap).sort((a, b) => {
@@ -389,7 +389,7 @@ function ActivityTrendSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t;
+  const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t === "Presentasi" ? "Meeting Offline" : t;
 
   const allSales = [...new Set((activities ?? []).map((a) => a.sales.name))].sort();
   const filtered = selectedSales

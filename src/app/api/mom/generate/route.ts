@@ -25,7 +25,7 @@ Gunakan PERSIS struktur berikut (tidak boleh ada field tambahan):
     "statusUpdate": "ringkasan singkat kenapa stage ini yang disarankan"
   },
   "activity": {
-    "tipeAktivitas": "HARUS salah satu persis dari: Email | Meeting Online | Meeting Offline | Presentasi | Demo | Negosiasi | Follow Up | Lainnya",
+    "tipeAktivitas": "HARUS salah satu persis dari: Email | Meeting Online | Meeting Offline | Demo | Negosiasi | Follow Up | Lainnya",
     "topikHasil": "ringkasan hasil aktivitas (max 150 karakter)",
     "nextStage": "stage berikutnya yang sama dengan pipeline.suggestedStage",
     "catatan": "catatan tambahan yang relevan"

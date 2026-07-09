@@ -32,7 +32,6 @@ const ACTIVITY_TYPES = [
   "Email",
   "Meeting Online",
   "Meeting Offline",
-  "Presentasi",
   "Demo",
   "Negosiasi",
   "Follow Up",

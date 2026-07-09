@@ -231,7 +231,7 @@ export async function GET(
 
     // ── Activity Growth Chart (Cumulative) ──────────────────────────────────
     // All activity types ever used by this sales
-    const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t;
+    const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t === "Presentasi" ? "Meeting Offline" : t;
     const allTypes = [...new Set(activities.map((a) => normalizeType(a.tipeAktivitas || "Lainnya")))];
 
     // Baseline: count of each type BEFORE chartFrom (activities older than window)

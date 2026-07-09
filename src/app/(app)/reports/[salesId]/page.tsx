@@ -60,12 +60,12 @@ interface DrawerData { prospect: ProspectDetail; activities: ProspectActivity[];
 /* ─── Color palette ───────────────────────────────────────────── */
 const ALL_ACTIVITY_TYPES = [
   "Email", "Meeting Online", "Meeting Offline",
-  "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
+  "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
 
 const TYPE_COLORS: Record<string, string> = {
   "Email": "#6366f1", "Meeting Online": "#3b82f6",
-  "Meeting Offline": "#8b5cf6", "Presentasi": "#f59e0b", "Demo": "#ef4444",
+  "Meeting Offline": "#8b5cf6", "Demo": "#ef4444",
   "Negosiasi": "#ec4899", "Follow Up": "#10b981", "Lainnya": "#94a3b8",
 };
 function getTypeColor(type: string, idx: number): string {

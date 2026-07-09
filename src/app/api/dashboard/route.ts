@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
       const byType: Record<string, number> = {};
       const bySales: Record<string, number> = {};
       for (const a of weekActivities) {
-        const t = a.tipeAktivitas === "WA/Call" ? "Follow Up" : (a.tipeAktivitas || "Lainnya");
+        const t = a.tipeAktivitas === "WA/Call" ? "Follow Up" : a.tipeAktivitas === "Presentasi" ? "Meeting Offline" : (a.tipeAktivitas || "Lainnya");
         byType[t] = (byType[t] || 0) + 1;
         const s = a.sales.name;
         bySales[s] = (bySales[s] || 0) + 1;

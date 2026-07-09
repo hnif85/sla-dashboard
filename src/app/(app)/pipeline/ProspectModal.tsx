@@ -11,7 +11,7 @@ const STAGES = [
 
 const ACTIVITY_TYPES = [
   "Email", "Meeting Online", "Meeting Offline",
-  "Presentasi", "Demo", "Negosiasi", "Follow Up", "Lainnya",
+  "Demo", "Negosiasi", "Follow Up", "Lainnya",
 ];
 
 interface FunnelStage {
