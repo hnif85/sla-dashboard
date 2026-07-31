@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const pipelineType = url.searchParams.get("pipelineType") || undefined;
 
   const where: Record<string, unknown> = session.role === "sales" ? { salesId: session.userId } : {};
+  where.sales = { active: true };
   if (prospectId) where.prospectId = prospectId;
   if (pipelineType) where.prospect = { pipelineType };
   if (dateFrom || dateTo) {

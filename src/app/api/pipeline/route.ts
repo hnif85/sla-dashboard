@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
   const pipelineType = url.searchParams.get("pipelineType") || undefined;
 
   const where: Record<string, unknown> = session.role === "sales"
-    ? { salesId: session.userId, deletedAt: null }
-    : { deletedAt: null };
+    ? { salesId: session.userId, deletedAt: null, sales: { active: true } }
+    : { deletedAt: null, sales: { active: true } };
   if (pipelineType) where.pipelineType = pipelineType;
 
   // Fetch prospects + cached funnel stages in parallel

@@ -118,6 +118,9 @@ export async function GET(
     if (!salesUser) {
       return NextResponse.json({ error: "Sales not found" }, { status: 404 });
     }
+    if (!salesUser.active) {
+      return NextResponse.json({ error: "Sales tidak aktif" }, { status: 404 });
+    }
 
     const stageMap = Object.fromEntries(funnelStages.map((s) => [s.name, s]));
     if (stageMap["3. Follow Up / Kit"]) stageMap["3. Follow Up"] = stageMap["3. Follow Up / Kit"];

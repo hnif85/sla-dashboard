@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
   const pipelineType = url.searchParams.get("pipelineType") || undefined;
 
   const prospectWhere = session.role === "sales"
-    ? { salesId: session.userId, deletedAt: null }
-    : { deletedAt: null };
+    ? { salesId: session.userId, deletedAt: null, sales: { active: true } }
+    : { deletedAt: null, sales: { active: true } };
   if (pipelineType) (prospectWhere as Record<string, unknown>).pipelineType = pipelineType;
 
   const activityWhere = session.role === "sales"
