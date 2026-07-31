@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   if (!session || session.role !== "admin") return NextResponse.json({ error: "Admin only" }, { status: 403 });
 
   const users = await prisma.user.findMany({
+    where: { active: true },
     select: { id: true, name: true, email: true, role: true, region: true, active: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
