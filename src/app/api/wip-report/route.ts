@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const dateFrom = url.searchParams.get("dateFrom");
   const dateTo = url.searchParams.get("dateTo");
+  const pipelineType = url.searchParams.get("pipelineType") || undefined;
 
   if (!dateFrom || !dateTo) {
     return NextResponse.json({ error: "dateFrom and dateTo are required" }, { status: 400 });
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const [activities, newProspects, stageChanges, moms] = await Promise.all([
     prisma.activity.findMany({
-      where: { ...byOwner, tanggal: { gte: from, lte: to } },
+      where: { ...byOwner, tanggal: { gte: from, lte: to }, ...(pipelineType ? { prospect: { pipelineType } } : {}) },
       select: {
         id: true,
         tipeAktivitas: true,
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
     }),
 
     prisma.prospect.findMany({
-      where: { ...byOwner, deletedAt: null, createdAt: { gte: from, lte: to } },
+      where: { ...byOwner, deletedAt: null, createdAt: { gte: from, lte: to }, ...(pipelineType ? { pipelineType } : {}) },
       select: {
         id: true,
         namaProspek: true,
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
     }),
 
     prisma.pipelineHistory.findMany({
-      where: { ...byChanger, fieldName: "Stage", changedAt: { gte: from, lte: to } },
+      where: { ...byChanger, fieldName: "Stage", changedAt: { gte: from, lte: to }, ...(pipelineType ? { prospect: { pipelineType } } : {}) },
       select: {
         id: true,
         oldValue: true,
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
     }),
 
     prisma.mOM.findMany({
-      where: { ...byOwner, tanggal: { gte: from, lte: to } },
+      where: { ...byOwner, tanggal: { gte: from, lte: to }, ...(pipelineType ? { prospect: { pipelineType } } : {}) },
       select: {
         id: true,
         title: true,

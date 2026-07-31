@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePipelineFilter } from "@/contexts/PipelineFilterContext";
 import {
   Printer, Calendar, Activity, Users, ArrowRightLeft,
   CheckCircle2, ChevronLeft, ChevronRight, Trophy,
@@ -246,6 +247,7 @@ function ResumePanel({ data }: { data: WipData }) {
 /* ─── Page ───────────────────────────────────────────────────── */
 export default function WipReportPage() {
   const { user } = useAuth();
+  const { pipelineType } = usePipelineFilter();
   const [mode, setMode] = useState<PeriodMode>("thisWeek");
   const [customFrom, setCustomFrom] = useState(toISO(new Date()));
   const [customTo, setCustomTo] = useState(toISO(new Date()));
@@ -264,11 +266,12 @@ export default function WipReportPage() {
     const { from, to } = bounds();
     setLoading(true);
     setData(null);
-    fetch(`/api/wip-report?dateFrom=${from}&dateTo=${to}`)
+    const qs = `dateFrom=${from}&dateTo=${to}${pipelineType ? `&pipelineType=${encodeURIComponent(pipelineType)}` : ""}`;
+    fetch(`/api/wip-report?${qs}`)
       .then((r) => r.json())
       .then(setData)
       .finally(() => setLoading(false));
-  }, [bounds]);
+  }, [bounds, pipelineType]);
 
   const { from, to } = bounds();
   const periodLabel = formatRange(from, to);
