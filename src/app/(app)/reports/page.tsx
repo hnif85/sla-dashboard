@@ -562,7 +562,9 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const url = pipelineType ? `/api/dashboard?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/dashboard";
-    fetch(url).then((r) => r.json()).then(setData).finally(() => setLoading(false));
+    console.log("[reports] fetching:", url);
+    setLoading(true);
+    fetch(url).then((r) => r.json()).then((data) => { console.log("[reports] got data, prospects:", Object.values(data.stageCount).reduce((a:number,b:number) => a+b, 0)); setData(data); }).finally(() => setLoading(false));
   }, [pipelineType]);
 
   if (loading) return (
