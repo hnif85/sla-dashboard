@@ -101,6 +101,7 @@ function formatRange(from: string, to: string) {
 type PeriodMode = "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "custom";
 
 function ActivityRecapSection() {
+  const { pipelineType } = usePipelineFilter();
   const [mode, setMode] = useState<PeriodMode>("thisWeek");
   const [customFrom, setCustomFrom] = useState(toISO(new Date()));
   const [customTo, setCustomTo] = useState(toISO(new Date()));
@@ -119,11 +120,12 @@ function ActivityRecapSection() {
   useEffect(() => {
     const { from, to } = bounds();
     setLoadingAct(true);
-    fetch(`/api/activities?dateFrom=${from}&dateTo=${to}`)
+    const qs = `dateFrom=${from}&dateTo=${to}${pipelineType ? `&pipelineType=${encodeURIComponent(pipelineType)}` : ""}`;
+    fetch(`/api/activities?${qs}`)
       .then((r) => r.json())
       .then(setActivities)
       .finally(() => setLoadingAct(false));
-  }, [bounds]);
+  }, [bounds, pipelineType]);
 
   const { from, to } = bounds();
 
@@ -372,6 +374,7 @@ function ActivityRecapSection() {
 
 /* ─── Activity Trend Section ────────────────────────────────── */
 function ActivityTrendSection() {
+  const { pipelineType } = usePipelineFilter();
   const [activities, setActivities] = useState<ActivityRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSales, setSelectedSales] = useState<string | null>(null);
@@ -383,11 +386,12 @@ function ActivityTrendSection() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/activities?dateFrom=${dateFrom}&dateTo=${dateTo}`)
+    const qs = `dateFrom=${dateFrom}&dateTo=${dateTo}${pipelineType ? `&pipelineType=${encodeURIComponent(pipelineType)}` : ""}`;
+    fetch(`/api/activities?${qs}`)
       .then((r) => r.json())
       .then(setActivities)
       .finally(() => setLoading(false));
-  }, []);
+  }, [pipelineType]);
 
   const normalizeType = (t: string) => t === "WA/Call" ? "Follow Up" : t === "Presentasi" ? "Meeting Offline" : t;
 
@@ -562,9 +566,8 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const url = pipelineType ? `/api/dashboard?pipelineType=${encodeURIComponent(pipelineType)}` : "/api/dashboard";
-    console.log("[reports] fetching:", url);
     setLoading(true);
-    fetch(url).then((r) => r.json()).then((data) => { console.log("[reports] got data, prospects:", Object.values(data.stageCount).reduce((a:number,b:number) => a+b, 0)); setData(data); }).finally(() => setLoading(false));
+    fetch(url).then((r) => r.json()).then(setData).finally(() => setLoading(false));
   }, [pipelineType]);
 
   if (loading) return (
