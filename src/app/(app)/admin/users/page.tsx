@@ -60,7 +60,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Yakin hapus user ini?")) return;
+    if (!confirm("Yakin nonaktifkan user ini?")) return;
     await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
     load();
   };

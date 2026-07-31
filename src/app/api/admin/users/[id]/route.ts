@@ -33,6 +33,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params;
   if (id === session.userId) return NextResponse.json({ error: "Tidak bisa hapus akun sendiri" }, { status: 400 });
 
-  await prisma.user.delete({ where: { id } });
+  await prisma.user.update({ where: { id }, data: { active: false } });
   return NextResponse.json({ success: true });
 }
